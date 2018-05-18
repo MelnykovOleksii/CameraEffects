@@ -1,0 +1,16 @@
+<resources>
+
+    <string name="app_name">Camera Effects</string>
+
+    <string name="save_photo">Save photo</string>
+    <string name="saved">Saved</string>
+
+    <string name="you_do_not_have_camera">You do not have camera</string>
+    <string name="failed_to_get_photo">Failed to get photo.</string>
+
+    <string name="camera_error_s">Camera ERROR: %1$s</string>
+    <string name="camera_permission_denied">Для работы с камерой нужно предоставить разрешения</string>
+    <string name="opengles3_not_supported">Для работы с камерой нужно предоставить разрешения</string>
+    <string name="to_work_with_the_finished_picture_resolution_needed">To work with ready picture needed permission</string>
+
+</resources>

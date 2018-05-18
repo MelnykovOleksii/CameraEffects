@@ -1,0 +1,29 @@
+<resources>
+
+    <dimen name="btn_save_photo_margin">16dp</dimen>
+    <dimen name="ll_social_btn_margin">32dp</dimen>
+    <dimen name="btn_exit_margin">16dp</dimen>
+    <dimen name="width_btn_save">184dp</dimen>
+    <dimen name="margin_social_btn">4dp</dimen>
+    <dimen name="size_social_btn">36dp</dimen>
+    <dimen name="btn_save_text_size">14sp</dimen>
+
+    <dimen name="radius_btn_save">32dp</dimen>
+    <dimen name="bottom_top_padding_btn_save">1dp</dimen>
+    <dimen name="left_right_padding_btn_save">48dp</dimen>
+
+    <dimen name="size_shape_grey_round_btn_back">32dp</dimen>
+
+    <dimen name="rl_height_bottom_bar">56dp</dimen>
+
+    <dimen name="round_btn_t_b_l_r_inside_oval">4dp</dimen>
+    <dimen name="round_btn_w_h_inside_oval">36dp</dimen>
+    <dimen name="round_btn_w_h_outside_oval">48dp</dimen>
+    <dimen name="round_btn_w_outside_oval_stroke">2dp</dimen>
+
+    <dimen name="default_margin">16dp</dimen>
+    <dimen name="filter_height_text_layout">16dp</dimen>
+    <dimen name="filter_size_border">1dp</dimen>
+    <dimen name="filter_text_size">12sp</dimen>
+
+</resources>

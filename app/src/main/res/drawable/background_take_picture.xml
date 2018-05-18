@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_enabled="false">
+        <layer-list>
+            <item android:bottom="@dimen/round_btn_t_b_l_r_inside_oval" android:left="@dimen/round_btn_t_b_l_r_inside_oval" android:right="@dimen/round_btn_t_b_l_r_inside_oval" android:top="@dimen/round_btn_t_b_l_r_inside_oval">
+                <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+                    <solid android:color="@color/colorGrey" />
+                    <size android:width="@dimen/round_btn_w_h_inside_oval" android:height="@dimen/round_btn_w_h_inside_oval" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="oval">
+                    <size android:width="@dimen/round_btn_w_h_outside_oval" android:height="@dimen/round_btn_w_h_outside_oval" />
+                    <stroke android:width="@dimen/round_btn_w_outside_oval_stroke" android:color="@color/colorGrey" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <item android:state_pressed="false">
+        <layer-list>
+            <item android:bottom="@dimen/round_btn_t_b_l_r_inside_oval" android:left="@dimen/round_btn_t_b_l_r_inside_oval" android:right="@dimen/round_btn_t_b_l_r_inside_oval" android:top="@dimen/round_btn_t_b_l_r_inside_oval">
+                <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+                    <solid android:color="@color/colorWhite" />
+                    <size android:width="@dimen/round_btn_w_h_inside_oval" android:height="@dimen/round_btn_w_h_inside_oval" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="oval">
+                    <size android:width="@dimen/round_btn_w_h_outside_oval" android:height="@dimen/round_btn_w_h_outside_oval" />
+                    <stroke android:width="@dimen/round_btn_w_outside_oval_stroke" android:color="@color/colorWhite" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+    <item android:state_pressed="true">
+        <layer-list>
+            <item android:bottom="@dimen/round_btn_t_b_l_r_inside_oval" android:left="@dimen/round_btn_t_b_l_r_inside_oval" android:right="@dimen/round_btn_t_b_l_r_inside_oval" android:top="@dimen/round_btn_t_b_l_r_inside_oval">
+                <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+                    <solid android:color="@color/colorGrey" />
+                    <size android:width="@dimen/round_btn_w_h_inside_oval" android:height="@dimen/round_btn_w_h_inside_oval" />
+                </shape>
+            </item>
+            <item>
+                <shape android:shape="oval">
+                    <size android:width="@dimen/round_btn_w_h_outside_oval" android:height="@dimen/round_btn_w_h_outside_oval" />
+                    <stroke android:width="@dimen/round_btn_w_outside_oval_stroke" android:color="@color/colorGrey" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+
+</selector>

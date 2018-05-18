@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#3F51B5</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#DA143B</color>
+    <color name="colorWhite">#FFFFFF</color>
+    <color name="colorRed">#d71313</color>
+    <color name="colorGrey">#d1cfcf</color>
+    <color name="colorSavedBtn">#017136</color>
+    <color name="colorInstagram">#2E5E85</color>
+    <color name="colorSaveBtn">#DA143B</color>
+</resources>
