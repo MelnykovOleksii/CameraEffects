@@ -1,4 +1,4 @@
-package ua.kh.oleksii.melnykov.cameraeffects.camera;
+package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>

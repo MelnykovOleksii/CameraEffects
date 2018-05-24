@@ -1,4 +1,4 @@
-package ua.kh.oleksii.melnykov.cameraeffects;
+package ua.kh.oleksii.melnykov.cameraeffects.camera;
 
 import android.Manifest;
 import android.app.ActivityManager;
@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.PixelFormat;
-import android.graphics.SurfaceTexture;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -17,17 +16,26 @@ import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraHandler;
-import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraInterface;
-import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraModule;
-import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraRender;
-import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraType;
+import ua.kh.oleksii.melnykov.cameraeffects.R;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraHandler;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraInterface;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraModule;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraRender;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
+import ua.kh.oleksii.melnykov.cameraeffects.gallery.GalleryActivity;
+import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
@@ -38,26 +46,38 @@ import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraType;
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class CameraActivity extends AppCompatActivity implements SurfaceTexture.OnFrameAvailableListener {
+public class CameraActivity extends AppCompatActivity {
 
     //region статические поля
     private static final int CAMERA_PERMISSION = 147;
     //endregion
 
     //region view поля
-    private ConstraintLayout mBottomLayout;
-    private Button mTakePicture;
     private TextView mErrorText;
     private ImageButton mSwitchCamera;
     private GLSurfaceView mGLSurfaceView;
+    private RecyclerView mFilterList;
+    private ConstraintLayout mListLayout;
+    private ImageView mToGallery;
+    private ConstraintLayout mFilterSettingsLayout;
+    private ConstraintLayout mFilterSetting1Laoyout;
+    private ConstraintLayout mFilterSetting2Laoyout;
+    private ImageView mFilterSetting1LeftIcon;
+    private ImageView mFilterSetting1RightIcon;
+    private SeekBar mFilterSetting1SeekBar;
+    private ImageView mFilterSetting2LeftIcon;
+    private ImageView mFilterSetting2RightIcon;
+    private SeekBar mFilterSetting2SeekBar;
     //endregion
 
+    private FilterAdapter mFilterAdapter;
+    private FilterAdapter.OnItemClickCallback mOnFilterItemClickCallback;
+
     //region поля для камеры
+    private CameraType mCameraType = CameraType.NONE;
+    private CameraRender mCameraRender;
     @Nullable
     private CameraInterface mCameraInterface;
-    private CameraType mCameraType = CameraType.NONE;
-    @Nullable
-    private CameraRender mCameraRender;
     @Nullable
     private CameraHandler mCameraHandler;
     //endregion
@@ -75,34 +95,113 @@ public class CameraActivity extends AppCompatActivity implements SurfaceTexture.
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_camera);
 
         //region инициализация view
-        mBottomLayout = findViewById(R.id.main_bottom_bar_layout);
-        mTakePicture = findViewById(R.id.main_take_picture);
-        mErrorText = findViewById(R.id.main_error_text);
-        mSwitchCamera = findViewById(R.id.main_switch_camera);
-        mGLSurfaceView = findViewById(R.id.main_camera_surface_view);
+        Button takePicture = findViewById(R.id.camera_take_picture);
+        mErrorText = findViewById(R.id.camera_error_text);
+        mSwitchCamera = findViewById(R.id.camera_switch_camera);
+        mFilterList = findViewById(R.id.include_filters_list);
+        mGLSurfaceView = findViewById(R.id.camera_surface_view);
+        mListLayout = findViewById(R.id.include_filters_list_layout);
+        mToGallery = findViewById(R.id.main_gallery);
+        mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
+        mFilterSetting1Laoyout = findViewById(R.id.include_filter_setting1);
+        mFilterSetting2Laoyout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
+        mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
+        mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
+        mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
+        mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
+        mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
+        //endregion
+
+        //region подключение слушателей для view
+        takePicture.setOnClickListener(view -> onTakePhotoClick());
+        mSwitchCamera.setOnClickListener(view -> onSwitchCamera());
+        mOnFilterItemClickCallback = (position, isSecondClick) -> {
+            if (mCameraRender == null) return;
+            if (!isSecondClick) mCameraRender.changeFilter(position);
+            else initFilterSettings();
+        };
+        mToGallery.setOnClickListener(v -> startActivity(GalleryActivity.createIntent(this)));
+        //endregion
+
+        //region настройка GLSurfaceView и установка рендера
+        mCameraRender = new CameraRender(null);
+        mGLSurfaceView.setEGLContextClientVersion(3);
+        mGLSurfaceView.setEGLConfigChooser(8, 8, 8,
+                8, 16, 0);
+        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
+        mGLSurfaceView.setRenderer(mCameraRender);
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        //endregion
+
+        //region настройка RecyclerView
+        mFilterList.setLayoutManager(new LinearLayoutManager(
+                this, LinearLayoutManager.HORIZONTAL, false));
+        ViewTreeObserver observer = mFilterList.getViewTreeObserver();
+        observer.addOnGlobalLayoutListener(() -> {
+            if (mFilterAdapter == null) {
+                mFilterAdapter = new FilterAdapter(mFilterList.getHeight(), mOnFilterItemClickCallback);
+                mFilterList.setAdapter(mFilterAdapter);
+            }
+        });
         //endregion
 
         //region начальное состояние для view
         mSwitchCamera.setVisibility(View.GONE);
         mErrorText.setVisibility(View.GONE);
-        //endregion
-
-        //region подключение слушателей для view
-        mTakePicture.setOnClickListener(view -> {
-            // если у нас нет разрешения на использование камеры и сохранение снимка, то
-            // запрашиваю их снова
-            if (getCameraPermission())
-                Toast.makeText(this, "Сфоторгафировать", Toast.LENGTH_SHORT).show();
-        });
-        mSwitchCamera.setOnClickListener(view -> Toast.makeText(this,
-                "Переключить камеру", Toast.LENGTH_SHORT).show());
+        mListLayout.setVisibility(View.GONE);
+        mFilterSettingsLayout.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getCameraPermission())
             initCamera();
+    }
+
+    private void initFilterSettings() {
+        mFilterSettingsLayout.setVisibility(View.VISIBLE);
+
+        mFilterSetting1Laoyout.setVisibility(View.VISIBLE);
+        mFilterSetting1LeftIcon.setImageResource(mCameraRender.getProgram().getFirstLeftIconResId());
+        mFilterSetting1RightIcon.setImageResource(mCameraRender.getProgram().getFirstRightIconResId());
+        mFilterSetting1SeekBar.setProgress(mCameraRender.getProgram().getFirstSettingsValue());
+        mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mCameraRender.getProgram().setFirstSettingsValue(progress);
+            }
+        });
+
+        if (mCameraRender.getProgram().isNeedTwoSettingParameters()) {
+            mFilterSetting2Laoyout.setVisibility(View.VISIBLE);
+            mFilterSetting2LeftIcon.setImageResource(mCameraRender.getProgram().getSecondLeftIconResId());
+            mFilterSetting2RightIcon.setImageResource(mCameraRender.getProgram().getSecondRightIconResId());
+            mFilterSetting2SeekBar.setProgress(mCameraRender.getProgram().getSecondSettingsValue());
+            mFilterSetting2SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mCameraRender.getProgram().setSecondSettingsValue(progress);
+                }
+            });
+        } else mFilterSetting2Laoyout.setVisibility(View.GONE);
+
+
+    }
+
+    private void onTakePhotoClick() {
+        Toast.makeText(this, "Сфоторгафировать", Toast.LENGTH_SHORT).show();
+    }
+
+    private void onSwitchCamera() {
+        if (mCameraType == CameraType.FRONT) mCameraType = CameraType.BACK;
+        else if (mCameraType == CameraType.BACK) mCameraType = CameraType.FRONT;
+
+        if (mCameraInterface != null) {
+            CloseCamera();
+            mCameraInterface.openCameraByType(mCameraType);
+        }
     }
 
     @Override
@@ -181,25 +280,13 @@ public class CameraActivity extends AppCompatActivity implements SurfaceTexture.
     private void initCamera() {
         mErrorText.setVisibility(View.GONE);
 
-        mGLSurfaceView.setEGLContextClientVersion(3);
-        mGLSurfaceView.setEGLConfigChooser(8, 8, 8,
-                8, 16, 0);
-        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
-
         mCameraInterface = new CameraModule(this).provideSupportCamera();
         mCameraHandler = new CameraHandler(this, mCameraInterface);
-        mCameraRender = new CameraRender(mCameraHandler);
-
-        mGLSurfaceView.setRenderer(mCameraRender);
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mCameraRender.setCameraHandler(mCameraHandler);
         mGLSurfaceView.requestRender();
-
-        mCameraType = getCameraTypeForOpen(mCameraInterface);
-        mCameraInterface.openCameraByType(mCameraType);
-        if(mCameraType == CameraType.BACK || mCameraType == CameraType.FRONT)
-            mSwitchCamera.setVisibility(View.VISIBLE);
-
+        mCameraInterface.setOnFrameAvailableCallback(surfaceTexture -> mGLSurfaceView.requestRender());
         mCameraInterface.setCameraReadyCallback((previewWidth, previewHeight) -> {
+            mListLayout.setVisibility(View.VISIBLE);
             mCameraHandler.weakReferenceHandler();
             mGLSurfaceView.onResume();
             mGLSurfaceView.queueEvent(() ->
@@ -207,14 +294,19 @@ public class CameraActivity extends AppCompatActivity implements SurfaceTexture.
                             mGLSurfaceView.getWidth(),
                             mGLSurfaceView.getHeight()));
         });
+
+        mCameraType = getCameraTypeForOpen(mCameraInterface);
+        mCameraInterface.openCameraByType(mCameraType);
+        if (mCameraType == CameraType.BACK || mCameraType == CameraType.FRONT)
+            mSwitchCamera.setVisibility(View.VISIBLE);
     }
 
     /**
      * Метод возвращает тип поддерживаемой камеры {@link CameraType}
      *
      * @param cameraInterface модель работы с камерой,
-     *                        {@link ua.kh.oleksii.melnykov.cameraeffects.camera.CameraNew} или
-     *                        {@link ua.kh.oleksii.melnykov.cameraeffects.camera.CameraOld}
+     *                        {@link ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraNew} или
+     *                        {@link ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraOld}
      * @return возвращает тип поддерживаемой камеры {@link CameraType}, если поддерживается
      * {@link CameraType#FRONT} и {@link CameraType#BACK}, то возвращается {@link CameraType#BACK}
      * для того, чтобы изначально открыть именно эту камеру
@@ -242,12 +334,24 @@ public class CameraActivity extends AppCompatActivity implements SurfaceTexture.
     }
 
     @Override
+    public void onBackPressed() {
+        if (mFilterSettingsLayout.getVisibility() == View.VISIBLE)
+            mFilterSettingsLayout.setVisibility(View.GONE);
+        else super.onBackPressed();
+    }
+
+    @Override
     protected void onPause() {
         super.onPause();
+        CloseCamera();
+    }
+
+    private void CloseCamera() {
         if (mCameraInterface != null) mCameraInterface.closeCamera();
-        if (mCameraRender != null)
+        if (mCameraRender != null && mGLSurfaceView != null) {
             mGLSurfaceView.queueEvent(() -> mCameraRender.notifyPausing());
-        mGLSurfaceView.onPause();
+            mGLSurfaceView.onPause();
+        }
     }
 
     @Override
@@ -256,8 +360,4 @@ public class CameraActivity extends AppCompatActivity implements SurfaceTexture.
         if (mCameraHandler != null) mCameraHandler.invalidateHandler();
     }
 
-    @Override
-    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        mGLSurfaceView.requestRender();
-    }
 }

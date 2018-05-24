@@ -1,4 +1,4 @@
-package ua.kh.oleksii.melnykov.cameraeffects.camera;
+package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
 import android.graphics.SurfaceTexture;
 
@@ -34,5 +34,7 @@ public interface CameraInterface {
     void closeCamera();
 
     void setCameraReadyCallback(CameraModule.Callback callback);
+
+    void setOnFrameAvailableCallback(SurfaceTexture.OnFrameAvailableListener onFrameAvailableCallback);
 
 }

@@ -10,7 +10,14 @@
 
     <string name="camera_error_s">Camera ERROR: %1$s</string>
     <string name="camera_permission_denied">Для работы с камерой нужно предоставить разрешения</string>
+    <string name="gallery_permission_denied">Для работы с изображениями из галереи нужно предоставить разрешения</string>
     <string name="opengles3_not_supported">Для работы с камерой нужно предоставить разрешения</string>
     <string name="to_work_with_the_finished_picture_resolution_needed">To work with ready picture needed permission</string>
+
+    <!--region названия фильтров-->
+    <string name="filter_no">Без фильтра</string>
+    <string name="filter_distortion_cushion">Дисторсия \n подушкообразная</string>
+    <string name="filter_distortion_barrel">Дисторсия \n бочкообразная</string>
+    <!--endregion-->
 
 </resources>

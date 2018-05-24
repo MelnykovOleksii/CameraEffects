@@ -1,4 +1,4 @@
-package ua.kh.oleksii.melnykov.cameraeffects.camera;
+package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
 import android.Manifest;
 import android.app.Activity;
@@ -25,8 +25,6 @@ import android.view.Surface;
 
 import java.util.Collections;
 
-import ua.kh.oleksii.melnykov.cameraeffects.CameraActivity;
-
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
  * Copyright (c) 2018 LineUp. <br>
@@ -45,11 +43,10 @@ class CameraNew implements CameraInterface {
     private final Activity mContext;
     private final CameraManager mCameraManager;
     private CameraModule.Callback mCallback;
+    private SurfaceTexture.OnFrameAvailableListener mOnFrameAvailableListener;
 
     @Nullable
     private CameraDevice mCameraDevice;
-    @Nullable
-    private SurfaceTexture mSurfaceTexture;
     @Nullable
     private Size mSize;
     @Nullable
@@ -136,8 +133,7 @@ class CameraNew implements CameraInterface {
 
     @Override
     public void handleSetSurfaceTexture(SurfaceTexture surfaceTexture) {
-        mSurfaceTexture = surfaceTexture;
-        surfaceTexture.setOnFrameAvailableListener((CameraActivity) mContext);
+        surfaceTexture.setOnFrameAvailableListener(mOnFrameAvailableListener);
 
         try {
             surfaceTexture.setDefaultBufferSize(mSize.getWidth(), mSize.getHeight());
@@ -201,6 +197,11 @@ class CameraNew implements CameraInterface {
     @Override
     public void setCameraReadyCallback(CameraModule.Callback callback) {
         mCallback = callback;
+    }
+
+    @Override
+    public void setOnFrameAvailableCallback(SurfaceTexture.OnFrameAvailableListener onFrameAvailableCallback) {
+        mOnFrameAvailableListener = onFrameAvailableCallback;
     }
 
     /**

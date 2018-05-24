@@ -1,4 +1,4 @@
-package ua.kh.oleksii.melnykov.cameraeffects.camera;
+package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
 import android.app.Activity;
 import android.os.Build;

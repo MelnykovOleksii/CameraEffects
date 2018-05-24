@@ -31,11 +31,14 @@
         </activity>
 
         <activity
-            android:name=".CameraActivity"
+            android:name=".camera.CameraActivity"
             android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
 
-        <activity android:name=".GalleryActivity" />
+        <activity
+            android:name=".gallery.GalleryActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppTheme.NoActionBar" />
 
     </application>
 

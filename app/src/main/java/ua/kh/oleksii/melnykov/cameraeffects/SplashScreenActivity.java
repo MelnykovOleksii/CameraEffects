@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 
+import ua.kh.oleksii.melnykov.cameraeffects.camera.CameraActivity;
+
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
  * Copyright (c) 2018 LineUp. <br>

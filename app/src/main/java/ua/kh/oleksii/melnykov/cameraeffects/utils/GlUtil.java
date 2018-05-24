@@ -1,60 +1,58 @@
-package ua.kh.oleksii.melnykov.cameraeffects.filters;
+package ua.kh.oleksii.melnykov.cameraeffects.utils;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
+/**
+ * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
+ * Copyright (c) 2018 LineUp. <br>
+ * Project: CameraEffects, ua.kh.oleksii.melnykov.cameraeffects.camera </p>
+ *
+ * @author Melnykov Oleksii
+ * @version 1.0
+ */
 public class GlUtil {
-    private static final String TAG = "GlUtil";
 
-    public static final float[] IDENTITY_MATRIX;
+    private static final float[] IDENTITY_MATRIX;
+    private static final int SIZEOF_FLOAT = 4;
 
     static {
         IDENTITY_MATRIX = new float[16];
         Matrix.setIdentityM(IDENTITY_MATRIX, 0);
     }
 
-    public  static final int SIZEOF_FLOAT = 4;
-
-    public  GlUtil() {
-    }
-
     public static int createProgram(String vertexSource, String fragmentSource) {
         int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, vertexSource);
-        if (vertexShader == 0) {
-            return 0;
-        }
+        if (vertexShader == 0) return 0;
+
         int pixelShader = loadShader(GLES20.GL_FRAGMENT_SHADER, fragmentSource);
-        if (pixelShader == 0) {
-            return 0;
-        }
+        if (pixelShader == 0) return 0;
 
         int program = GLES20.glCreateProgram();
         checkGlError("glCreateProgram");
-        if (program == 0) {
-            Log.e(TAG, "Could not create program");
-        }
+
         GLES20.glAttachShader(program, vertexShader);
         checkGlError("glAttachShader");
+
         GLES20.glAttachShader(program, pixelShader);
         checkGlError("glAttachShader");
+
         GLES20.glLinkProgram(program);
+
         int[] linkStatus = new int[1];
         GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
         if (linkStatus[0] != GLES20.GL_TRUE) {
-            Log.e(TAG, "Could not link program: ");
-            Log.e(TAG, GLES20.glGetProgramInfoLog(program));
             GLES20.glDeleteProgram(program);
             program = 0;
         }
         return program;
     }
 
-    public  static int loadShader(int shaderType, String source) {
+    private static int loadShader(int shaderType, String source) {
         int shader = GLES20.glCreateShader(shaderType);
         checkGlError("glCreateShader type=" + shaderType);
         GLES20.glShaderSource(shader, source);
@@ -62,8 +60,6 @@ public class GlUtil {
         int[] compiled = new int[1];
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
         if (compiled[0] == 0) {
-            Log.e(TAG, "Could not compile shader " + shaderType + ":");
-            Log.e(TAG, " " + GLES20.glGetShaderInfoLog(shader));
             GLES20.glDeleteShader(shader);
             shader = 0;
         }
@@ -74,7 +70,6 @@ public class GlUtil {
         int error = GLES20.glGetError();
         if (error != GLES20.GL_NO_ERROR) {
             String msg = op + ": glError 0x" + Integer.toHexString(error);
-            Log.e(TAG, msg);
             throw new RuntimeException(msg);
         }
     }
