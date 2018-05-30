@@ -57,6 +57,11 @@ class CameraOld implements CameraInterface {
 
     }
 
+    @Override
+    public void takePhoto() {
+
+    }
+
     /**
      * Выполняется проверка на наличие заданной кмеры (фронтальной или задней)
      *

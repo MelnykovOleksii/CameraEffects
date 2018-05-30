@@ -3,6 +3,10 @@ package ua.kh.oleksii.melnykov.cameraeffects.filters;
 import android.support.annotation.StringRes;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraDistortionFilterBaseProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraNoFilterBaseProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryDistortionFilterBaseProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryNoFilterBaseProgram;
 
 /**
  * <p> Created by Melnykov Oleksii on 19.05.2018. <br>
@@ -14,17 +18,30 @@ import ua.kh.oleksii.melnykov.cameraeffects.R;
  */
 public class Filters {
 
-    public static FilterProgram switchProgramByType(TYPE type) {
+    public static FilterBaseProgram switchProgramByTypeForCamera(TYPE type) {
         switch (type) {
             case NO_FILTER:
             default:
-                return new NoFilterProgram();
+                return new CameraNoFilterBaseProgram();
             case CUSHION_DISTORTION:
-                return new DistortionFilterProgram(true);
+                return new CameraDistortionFilterBaseProgram(true);
             case BARREL_DISTORTION:
-                return new DistortionFilterProgram(false);
+                return new CameraDistortionFilterBaseProgram(false);
         }
     }
+
+    public static FilterBaseProgram switchProgramByTypeForGallery(TYPE type) {
+        switch (type) {
+            case NO_FILTER:
+            default:
+                return new GalleryNoFilterBaseProgram();
+            case CUSHION_DISTORTION:
+                return new GalleryDistortionFilterBaseProgram(true);
+            case BARREL_DISTORTION:
+                return new GalleryDistortionFilterBaseProgram(false);
+        }
+    }
+
 
     public enum TYPE {
         NO_FILTER(R.string.filter_no),

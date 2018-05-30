@@ -1,41 +1,87 @@
-package ua.kh.oleksii.melnykov.cameraeffects.filters;
+package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
 import android.graphics.PointF;
 import android.opengl.GLES20;
 import android.opengl.GLES30;
 
-import ua.kh.oleksii.melnykov.cameraeffects.R;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
 /**
- * <p> Created by Melnykov Oleksii on 18.05.2018. <br>
+ * <p> Created by Melnykov Oleksii on 30-May-18. <br>
  * Copyright (c) 2018 LineUp. <br>
- * Project: CameraEffects, ua.kh.oleksii.melnykov.cameraeffects.filters </p>
+ * Project: CameraEffects, ua.kh.oleksii.melnykov.cameraeffects.gallery.bind </p>
  *
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class DistortionFilterProgram extends FilterProgram {
+public class GalleryDistortionFilterBaseProgram extends FilterBaseProgram {
 
     private boolean isCushionDistortion;
-
     private int mScaleLocation;
     private int mRadiusLocation;
     private int mCenterLocation;
     private int mAspectRatioLocation;
-
     private float mScale; // от -1.0 до 1.0
     private float mRadius; // от 0.0 до 1.0
     private PointF mCenter; // 0.5, 0.5
     private float mAspectRatio;
+    private int mGLUniformTexture;
 
-    DistortionFilterProgram(boolean isCushionDistortion) {
+    public GalleryDistortionFilterBaseProgram(boolean isCushionDistortion) {
         this.isCushionDistortion = isCushionDistortion;
-        mCenter = new PointF(0.5f, 0.5f);
-        mScale = isCushionDistortion ? -0.2f : 0.2f;
-        mRadius = 0.2f;
 
-        setup();
+        mCenter = new PointF(0.5f, 0.5f);
+        mScale = this.isCushionDistortion ? -0.2f : 0.2f;
+        mRadius = 0.2f;
+    }
+
+    @Override
+    public String getVertexShader() {
+        return "" +
+                "attribute vec4 mPosition;\n" +
+                "attribute vec4 mInputTextureCoordinate;\n" +
+                "varying vec2 mOutputTextureCoordinate;\n" +
+                "" +
+                "void main() {\n" +
+                "    gl_Position = mPosition;\n" +
+                "    mOutputTextureCoordinate = mInputTextureCoordinate.xy;\n" +
+                "}";
+    }
+
+    @Override
+    public String getShader() {
+        return "" +
+                "varying highp vec2 mOutputTextureCoordinate;\n" +
+                "uniform sampler2D mInputImageTexture;\n" +
+                "" +
+                "uniform float aspectRatio;\n" +
+                "uniform vec2 center;\n" +
+                "uniform float radius;\n" +
+                "uniform float scale;\n" +
+                "" +
+                "void main() {\n" +
+                "   vec2 textureCoordinateToUse = vec2(mOutputTextureCoordinate.x, " +
+                "       (mOutputTextureCoordinate.y * aspectRatio + 0.5 - 0.5 * aspectRatio));\n" +
+                "   float dist = distance(center, textureCoordinateToUse);\n" +
+                "   textureCoordinateToUse = mOutputTextureCoordinate;\n" +
+                "" +
+                "   if (dist < radius) {\n" +
+                "       textureCoordinateToUse -= center;\n" +
+                "       float percent = 1.0 - ((radius - dist) / radius) * scale;\n" +
+                "       percent = percent * percent;\n" +
+                "       textureCoordinateToUse = textureCoordinateToUse * percent;\n" +
+                "       textureCoordinateToUse += center;\n" +
+                "   }\n" +
+                "" +
+                "   gl_FragColor = texture2D(mInputImageTexture, textureCoordinateToUse );\n" +
+                "}";
+    }
+
+    @Override
+    protected void optionalSetup() {
+        mGLUniformTexture = GLES20.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
+        GlUtil.checkLocation(mGLUniformTexture, "mInputImageTexture");
 
         mScaleLocation = GLES30.glGetUniformLocation(mProgramHandle, "scale");
         GlUtil.checkLocation(mScaleLocation, "scale");
@@ -51,42 +97,19 @@ public class DistortionFilterProgram extends FilterProgram {
     }
 
     @Override
-    public String getShader() {
-        return "#extension GL_OES_EGL_image_external : require\n" +
-                "varying vec2 vTextureCoord;\n" +
-                "uniform samplerExternalOES sTexture;\n" +
-                "" +
-                "uniform float aspectRatio;\n" +
-                "uniform vec2 center;\n" +
-                "uniform float radius;\n" +
-                "uniform float scale;\n" +
-                "" +
-                "void main() {\n" +
-                "   vec2 textureCoordinateToUse = vec2(vTextureCoord.x, " +
-                "       (vTextureCoord.y * aspectRatio + 0.5 - 0.5 * aspectRatio));\n" +
-                "   float dist = distance(center, textureCoordinateToUse);\n" +
-                "   textureCoordinateToUse = vTextureCoord;\n" +
-                "" +
-                "   if (dist < radius) {\n" +
-                "       textureCoordinateToUse -= center;\n" +
-                "       float percent = 1.0 - ((radius - dist) / radius) * scale;\n" +
-                "       percent = percent * percent;\n" +
-                "       textureCoordinateToUse = textureCoordinateToUse * percent;\n" +
-                "       textureCoordinateToUse += center;\n" +
-                "   }\n" +
-                "" +
-                "   gl_FragColor = texture2D(sTexture, textureCoordinateToUse );    \n" +
-                "}";
-    }
-
-    @Override
     public void setTexSize(int width, int height) {
         super.setTexSize(width, height);
         mAspectRatio = (float) height / width;
     }
 
     @Override
-    public void optionalDraw() {
+    public void optionalDraw(int textureId) {
+        if (textureId != -1) {
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
+            GLES20.glUniform1i(mGLUniformTexture, 0);
+        }
+
         GLES20.glUniform1f(mScaleLocation, mScale);
         GlUtil.checkGlError("glUniform1f");
 
@@ -105,50 +128,47 @@ public class DistortionFilterProgram extends FilterProgram {
 
     @Override
     public boolean isNeedTwoSettingParameters() {
-        return true;
+        return false;
     }
 
     @Override
     public int getFirstSettingsValue() {
-        return (int) (mRadius * 100f / 1f);
+        return 0;
     }
 
     @Override
     public void setFirstSettingsValue(int newValue) {
-        mRadius = 1f * (float) newValue / 100;
+
     }
 
     @Override
     public int getSecondSettingsValue() {
-        int value = (int) (mScale * 100f / 1f);
-
-        return value < 0 ? value * -1 : value;
+        return 0;
     }
 
     @Override
     public void setSecondSettingsValue(int newValue) {
-        float value = 1f * (float) newValue / 100;
-        mScale = isCushionDistortion ? value * -1 : value;
+
     }
 
     @Override
     public int getFirstLeftIconResId() {
-        return R.drawable.ic_left;
+        return 0;
     }
 
     @Override
     public int getFirstRightIconResId() {
-        return R.drawable.ic_right;
+        return 0;
     }
 
     @Override
     public int getSecondLeftIconResId() {
-        return R.drawable.ic_left;
+        return 0;
     }
 
     @Override
     public int getSecondRightIconResId() {
-        return R.drawable.ic_right;
+        return 0;
     }
 
 }

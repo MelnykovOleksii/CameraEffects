@@ -37,4 +37,6 @@ public interface CameraInterface {
 
     void setOnFrameAvailableCallback(SurfaceTexture.OnFrameAvailableListener onFrameAvailableCallback);
 
+    void takePhoto() throws Exception;
+
 }

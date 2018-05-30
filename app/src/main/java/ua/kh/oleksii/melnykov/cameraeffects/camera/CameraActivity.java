@@ -25,13 +25,12 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraHandler;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraInterface;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraModule;
-import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraRender;
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraRenderer;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.GalleryActivity;
@@ -75,7 +74,7 @@ public class CameraActivity extends AppCompatActivity {
 
     //region поля для камеры
     private CameraType mCameraType = CameraType.NONE;
-    private CameraRender mCameraRender;
+    private CameraRenderer mCameraRenderer;
     @Nullable
     private CameraInterface mCameraInterface;
     @Nullable
@@ -120,20 +119,20 @@ public class CameraActivity extends AppCompatActivity {
         takePicture.setOnClickListener(view -> onTakePhotoClick());
         mSwitchCamera.setOnClickListener(view -> onSwitchCamera());
         mOnFilterItemClickCallback = (position, isSecondClick) -> {
-            if (mCameraRender == null) return;
-            if (!isSecondClick) mCameraRender.changeFilter(position);
+            if (mCameraRenderer == null) return;
+            if (!isSecondClick) mCameraRenderer.changeFilter(position);
             else initFilterSettings();
         };
         mToGallery.setOnClickListener(v -> startActivity(GalleryActivity.createIntent(this)));
         //endregion
 
         //region настройка GLSurfaceView и установка рендера
-        mCameraRender = new CameraRender(null);
+        mCameraRenderer = new CameraRenderer(null);
         mGLSurfaceView.setEGLContextClientVersion(3);
         mGLSurfaceView.setEGLConfigChooser(8, 8, 8,
                 8, 16, 0);
         mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
-        mGLSurfaceView.setRenderer(mCameraRender);
+        mGLSurfaceView.setRenderer(mCameraRenderer);
         mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
         //endregion
 
@@ -164,34 +163,39 @@ public class CameraActivity extends AppCompatActivity {
         mFilterSettingsLayout.setVisibility(View.VISIBLE);
 
         mFilterSetting1Laoyout.setVisibility(View.VISIBLE);
-        mFilterSetting1LeftIcon.setImageResource(mCameraRender.getProgram().getFirstLeftIconResId());
-        mFilterSetting1RightIcon.setImageResource(mCameraRender.getProgram().getFirstRightIconResId());
-        mFilterSetting1SeekBar.setProgress(mCameraRender.getProgram().getFirstSettingsValue());
+        mFilterSetting1LeftIcon.setImageResource(mCameraRenderer.getProgram().getFirstLeftIconResId());
+        mFilterSetting1RightIcon.setImageResource(mCameraRenderer.getProgram().getFirstRightIconResId());
+        mFilterSetting1SeekBar.setProgress(mCameraRenderer.getProgram().getFirstSettingsValue());
         mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                mCameraRender.getProgram().setFirstSettingsValue(progress);
+                mCameraRenderer.getProgram().setFirstSettingsValue(progress);
             }
         });
 
-        if (mCameraRender.getProgram().isNeedTwoSettingParameters()) {
+        if (mCameraRenderer.getProgram().isNeedTwoSettingParameters()) {
             mFilterSetting2Laoyout.setVisibility(View.VISIBLE);
-            mFilterSetting2LeftIcon.setImageResource(mCameraRender.getProgram().getSecondLeftIconResId());
-            mFilterSetting2RightIcon.setImageResource(mCameraRender.getProgram().getSecondRightIconResId());
-            mFilterSetting2SeekBar.setProgress(mCameraRender.getProgram().getSecondSettingsValue());
+            mFilterSetting2LeftIcon.setImageResource(mCameraRenderer.getProgram().getSecondLeftIconResId());
+            mFilterSetting2RightIcon.setImageResource(mCameraRenderer.getProgram().getSecondRightIconResId());
+            mFilterSetting2SeekBar.setProgress(mCameraRenderer.getProgram().getSecondSettingsValue());
             mFilterSetting2SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                    mCameraRender.getProgram().setSecondSettingsValue(progress);
+                    mCameraRenderer.getProgram().setSecondSettingsValue(progress);
                 }
             });
         } else mFilterSetting2Laoyout.setVisibility(View.GONE);
 
-
     }
 
     private void onTakePhotoClick() {
-        Toast.makeText(this, "Сфоторгафировать", Toast.LENGTH_SHORT).show();
+        if (isSupportsOpenGLES3() && getCameraPermission() && mCameraInterface != null) {
+            try {
+                mCameraInterface.takePhoto();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void onSwitchCamera() {
@@ -282,7 +286,7 @@ public class CameraActivity extends AppCompatActivity {
 
         mCameraInterface = new CameraModule(this).provideSupportCamera();
         mCameraHandler = new CameraHandler(this, mCameraInterface);
-        mCameraRender.setCameraHandler(mCameraHandler);
+        mCameraRenderer.setCameraHandler(mCameraHandler);
         mGLSurfaceView.requestRender();
         mCameraInterface.setOnFrameAvailableCallback(surfaceTexture -> mGLSurfaceView.requestRender());
         mCameraInterface.setCameraReadyCallback((previewWidth, previewHeight) -> {
@@ -290,7 +294,7 @@ public class CameraActivity extends AppCompatActivity {
             mCameraHandler.weakReferenceHandler();
             mGLSurfaceView.onResume();
             mGLSurfaceView.queueEvent(() ->
-                    mCameraRender.setCameraPreviewSize(previewWidth, previewHeight,
+                    mCameraRenderer.setCameraPreviewSize(previewWidth, previewHeight,
                             mGLSurfaceView.getWidth(),
                             mGLSurfaceView.getHeight()));
         });
@@ -348,8 +352,8 @@ public class CameraActivity extends AppCompatActivity {
 
     private void CloseCamera() {
         if (mCameraInterface != null) mCameraInterface.closeCamera();
-        if (mCameraRender != null && mGLSurfaceView != null) {
-            mGLSurfaceView.queueEvent(() -> mCameraRender.notifyPausing());
+        if (mCameraRenderer != null && mGLSurfaceView != null) {
+            mGLSurfaceView.queueEvent(() -> mCameraRenderer.notifyPausing());
             mGLSurfaceView.onPause();
         }
     }

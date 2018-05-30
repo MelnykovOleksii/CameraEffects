@@ -4,15 +4,21 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.support.annotation.NonNull;
@@ -23,7 +29,19 @@ import android.util.DisplayMetrics;
 import android.util.Size;
 import android.view.Surface;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import ua.kh.oleksii.melnykov.cameraeffects.utils.CompareSizesByArea;
 
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
@@ -51,6 +69,7 @@ class CameraNew implements CameraInterface {
     private Size mSize;
     @Nullable
     private CameraCaptureSession mCameraCaptureSession;
+    private SurfaceTexture mSurfaceTexture;
 
     CameraNew(Activity context) {
         mContext = context;
@@ -133,11 +152,12 @@ class CameraNew implements CameraInterface {
 
     @Override
     public void handleSetSurfaceTexture(SurfaceTexture surfaceTexture) {
-        surfaceTexture.setOnFrameAvailableListener(mOnFrameAvailableListener);
+        mSurfaceTexture = surfaceTexture;
+        mSurfaceTexture.setOnFrameAvailableListener(mOnFrameAvailableListener);
 
         try {
-            surfaceTexture.setDefaultBufferSize(mSize.getWidth(), mSize.getHeight());
-            Surface surface = new Surface(surfaceTexture);
+            mSurfaceTexture.setDefaultBufferSize(mSize.getWidth(), mSize.getHeight());
+            Surface surface = new Surface(mSurfaceTexture);
             CaptureRequest.Builder captureRequest = mCameraDevice.createCaptureRequest(
                     CameraDevice.TEMPLATE_PREVIEW);
             captureRequest.addTarget(surface);
@@ -202,6 +222,100 @@ class CameraNew implements CameraInterface {
     @Override
     public void setOnFrameAvailableCallback(SurfaceTexture.OnFrameAvailableListener onFrameAvailableCallback) {
         mOnFrameAvailableListener = onFrameAvailableCallback;
+    }
+
+    @Override
+    public void takePhoto() throws Exception {
+        final byte[][] bytes = new byte[1][1];
+        CameraCharacteristics characteristics = mCameraManager
+                .getCameraCharacteristics(Objects.requireNonNull(mCameraDevice).getId());
+        StreamConfigurationMap jpegSizes = characteristics
+                .get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        Size largest = Collections.max(Arrays.asList(
+                Objects.requireNonNull(jpegSizes).getOutputSizes(ImageFormat.JPEG)),
+                new CompareSizesByArea());
+
+        ImageReader reader = ImageReader.newInstance(largest.getWidth(),
+                largest.getHeight(), ImageFormat.JPEG, 1);
+        List<Surface> outputSurfaces = new ArrayList<>(2);
+        outputSurfaces.add(reader.getSurface());
+        outputSurfaces.add(new Surface(mSurfaceTexture));
+
+        final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(
+                CameraDevice.TEMPLATE_STILL_CAPTURE);
+        captureBuilder.addTarget(reader.getSurface());
+        captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
+        captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, 270);
+
+        ImageReader.OnImageAvailableListener readerListener = reader1 -> {
+            Image image = null;
+            try {
+                image = reader1.acquireLatestImage();
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                byte[] b = new byte[buffer.capacity()];
+                buffer.get(b);
+                bytes[0] = b;
+            } finally {
+                if (image != null) {
+                    image.close();
+                }
+            }
+        };
+        reader.setOnImageAvailableListener(readerListener, mBackgroundHandler);
+        final CameraCaptureSession.CaptureCallback captureListener =
+                new CameraCaptureSession.CaptureCallback() {
+                    @Override
+                    public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                                   @NonNull CaptureRequest request,
+                                                   @NonNull TotalCaptureResult result) {
+                        super.onCaptureCompleted(session, request, result);
+                        if (bytes[0] != null) {
+                            File imageRoot = new File(Environment
+                                    .getExternalStoragePublicDirectory(
+                                            Environment.DIRECTORY_PICTURES),
+                                    "Camera Effects");
+                            imageRoot.mkdir();
+
+                            File image = new File(imageRoot, Calendar.getInstance().getTime()
+                                    .toString().concat(".jpg"));
+
+                            OutputStream output = null;
+                            try {
+                                try {
+                                    output = new FileOutputStream(image);
+                                    output.write(bytes[0]);
+
+                                } finally {
+                                    if (null != output) {
+                                        output.close();
+                                    }
+                                }
+                            } catch (IOException pE) {
+                                pE.printStackTrace();
+                            }
+
+                            bytes[0] = null;
+                        }
+
+                    }
+                };
+
+        mCameraDevice.createCaptureSession(outputSurfaces,
+                new CameraCaptureSession.StateCallback() {
+                    @Override
+                    public void onConfigured(@NonNull CameraCaptureSession session) {
+                        try {
+                            session.capture(captureBuilder.build(),
+                                    captureListener, mBackgroundHandler);
+                        } catch (CameraAccessException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+                    }
+                }, mBackgroundHandler);
     }
 
     /**

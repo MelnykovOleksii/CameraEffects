@@ -7,19 +7,31 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.PixelFormat;
 import android.net.Uri;
+import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
+import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.view.ViewTreeObserver;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
+import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.ImageRenderer;
+import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.LoadImageUriTask;
+import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
 /**
  * <p> Created by Melnykov Oleksii on 17.05.2018. <br>
@@ -33,8 +45,28 @@ public class GalleryActivity extends AppCompatActivity {
 
     private static final int EXTERNAL_STORAGE_PERMISSION = 285;
     public static final int GET_IMAGE_FROM_GALLERY = 369;
+    public static final String KEY_SAVE_INSTANSE_IMAGE_URI = "GalleryActivity.KEY_SAVE_INSTANSE_IMAGE_URI";
 
+    //region view поля
     private TextView mErrorText;
+    private GLSurfaceView mGLSurfaceView;
+    private RecyclerView mFilterList;
+    private ConstraintLayout mListLayout;
+    private ImageView mToCamera;
+    private ConstraintLayout mFilterSettingsLayout;
+    private ConstraintLayout mFilterSetting1Laoyout;
+    private ConstraintLayout mFilterSetting2Laoyout;
+    private ImageView mFilterSetting1LeftIcon;
+    private ImageView mFilterSetting1RightIcon;
+    private SeekBar mFilterSetting1SeekBar;
+    private ImageView mFilterSetting2LeftIcon;
+    private ImageView mFilterSetting2RightIcon;
+    private SeekBar mFilterSetting2SeekBar;
+    //endregion
+
+    private FilterAdapter mFilterAdapter;
+    private FilterAdapter.OnItemClickCallback mOnFilterItemClickCallback;
+    private ImageRenderer mRenderer;
 
     public static Intent createIntent(@NonNull Context context) {
         return new Intent(context, GalleryActivity.class);
@@ -45,9 +77,90 @@ public class GalleryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
 
+        //region инициализация view
+        ImageButton saveImage = findViewById(R.id.gallery_save_image);
         mErrorText = findViewById(R.id.gallery_error_text);
+        mFilterList = findViewById(R.id.include_filters_list);
+        mGLSurfaceView = findViewById(R.id.gallery_surface_view);
+        mListLayout = findViewById(R.id.include_filters_list_layout);
+        mToCamera = findViewById(R.id.gallery_back_to_camera);
+        mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
+        mFilterSetting1Laoyout = findViewById(R.id.include_filter_setting1);
+        mFilterSetting2Laoyout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
+        mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
+        mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
+        mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
+        mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
+        mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
+        //endregion
 
-        if (isSupportsOpenGLES3() && getCameraPermission()) initGallery();
+        //region подключение слушателей для view
+        saveImage.setOnClickListener(view -> onSaveImage());
+        mOnFilterItemClickCallback = (position, isSecondClick) -> {
+            if (!isSecondClick) {
+                mRenderer.changeFilter(position);
+                mGLSurfaceView.requestRender();
+            } else initFilterSettings();
+        };
+        mToCamera.setOnClickListener(v -> onBackPressed());
+        //endregion
+
+        //region настройка RecyclerView
+        mFilterList.setLayoutManager(new LinearLayoutManager(
+                this, LinearLayoutManager.HORIZONTAL, false));
+        ViewTreeObserver observer = mFilterList.getViewTreeObserver();
+        observer.addOnGlobalLayoutListener(() -> {
+            if (mFilterAdapter == null) {
+                mFilterAdapter = new FilterAdapter(mFilterList.getHeight(), mOnFilterItemClickCallback);
+                mFilterList.setAdapter(mFilterAdapter);
+            }
+        });
+        //endregion
+
+        //region начальное состояние для view
+        mErrorText.setVisibility(View.GONE);
+        mListLayout.setVisibility(View.GONE);
+        mFilterSettingsLayout.setVisibility(View.GONE);
+        //endregion
+
+        if (isSupportsOpenGLES3() && getExternalReadPermission())
+            getImageFromUserGallery();
+
+    }
+
+    private void initFilterSettings() {
+        mFilterSettingsLayout.setVisibility(View.VISIBLE);
+
+        mFilterSetting1Laoyout.setVisibility(View.VISIBLE);
+        mFilterSetting1LeftIcon.setImageResource(mRenderer.getProgram().getFirstLeftIconResId());
+        mFilterSetting1RightIcon.setImageResource(mRenderer.getProgram().getFirstRightIconResId());
+        mFilterSetting1SeekBar.setProgress(mRenderer.getProgram().getFirstSettingsValue());
+        mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mRenderer.getProgram().setFirstSettingsValue(progress);
+                mGLSurfaceView.requestRender();
+            }
+        });
+
+        if (mRenderer.getProgram().isNeedTwoSettingParameters()) {
+            mFilterSetting2Laoyout.setVisibility(View.VISIBLE);
+            mFilterSetting2LeftIcon.setImageResource(mRenderer.getProgram().getSecondLeftIconResId());
+            mFilterSetting2RightIcon.setImageResource(mRenderer.getProgram().getSecondRightIconResId());
+            mFilterSetting2SeekBar.setProgress(mRenderer.getProgram().getSecondSettingsValue());
+            mFilterSetting2SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mRenderer.getProgram().setSecondSettingsValue(progress);
+                    mGLSurfaceView.requestRender();
+                }
+            });
+        } else mFilterSetting2Laoyout.setVisibility(View.GONE);
+    }
+
+    private void onSaveImage() {
+
     }
 
     private boolean isSupportsOpenGLES3() {
@@ -61,7 +174,7 @@ public class GalleryActivity extends AppCompatActivity {
         return isSupported;
     }
 
-    private boolean getCameraPermission() {
+    private boolean getExternalReadPermission() {
         boolean isDenied = PermissionChecker.checkSelfPermission(this,
                 Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED;
 
@@ -74,10 +187,30 @@ public class GalleryActivity extends AppCompatActivity {
         return !isDenied;
     }
 
-    private void initGallery() {
+    private void getImageFromUserGallery() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         startActivityForResult(intent, GET_IMAGE_FROM_GALLERY);
+
+    }
+
+    private void initGallery(Uri imageUri) {
+        mErrorText.setVisibility(View.GONE);
+        mListLayout.setVisibility(View.VISIBLE);
+
+        mRenderer = new ImageRenderer();
+        mGLSurfaceView.setEGLContextClientVersion(2);
+        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
+        mGLSurfaceView.setRenderer(mRenderer);
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mGLSurfaceView.requestRender();
+
+        new LoadImageUriTask(imageUri, this, mRenderer,
+                bitmap -> {
+                    mRenderer.setImageBitmap(bitmap);
+                    mGLSurfaceView.requestRender();
+                }).execute();
 
     }
 
@@ -96,7 +229,7 @@ public class GalleryActivity extends AppCompatActivity {
                 // если пользователем подтверждено рарешение на использование камеры,
                 // то выполняем инициализацию камеры
                 if (grantResults.length != 1 || grantResults[0] ==
-                        PackageManager.PERMISSION_GRANTED) initGallery();
+                        PackageManager.PERMISSION_GRANTED) getImageFromUserGallery();
                 else showError(R.string.gallery_permission_denied);
                 break;
         }
@@ -108,8 +241,7 @@ public class GalleryActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == GET_IMAGE_FROM_GALLERY && resultCode == Activity.RESULT_OK) {
-            Uri uri = data.getData();
-            Toast.makeText(this, "Выбрано: " + uri.getPath(), Toast.LENGTH_SHORT).show();
+            initGallery(data.getData());
         } else {
             onBackPressed();
         }
@@ -118,6 +250,28 @@ public class GalleryActivity extends AppCompatActivity {
     private void showError(@StringRes int resId) {
         mErrorText.setVisibility(View.VISIBLE);
         mErrorText.setText(resId);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (mFilterSettingsLayout.getVisibility() == View.VISIBLE)
+            mFilterSettingsLayout.setVisibility(View.GONE);
+        else super.onBackPressed();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mGLSurfaceView != null && mRenderer != null) {
+            mGLSurfaceView.onPause();
+//            mGLSurfaceView.queueEvent(() -> mRenderer.getProgram().release());
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mGLSurfaceView != null && mRenderer != null) mGLSurfaceView.onResume();
     }
 
 }

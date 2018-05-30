@@ -1,6 +1,7 @@
 package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
 import android.graphics.SurfaceTexture;
+import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
@@ -11,7 +12,7 @@ import java.nio.FloatBuffer;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.Filters;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
@@ -23,7 +24,7 @@ import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class CameraRender implements GLSurfaceView.Renderer {
+public class CameraRenderer implements GLSurfaceView.Renderer {
 
     private static final int SIZEOF_FLOAT = 4;
     private int mIncomingWidth;
@@ -40,7 +41,7 @@ public class CameraRender implements GLSurfaceView.Renderer {
     private int mCoordsPerVertex;
     private int mTexCoordStride;
     private float mRatio;
-    private FilterProgram mProgram;
+    private FilterBaseProgram mProgram;
     private Filters.TYPE mTYPE;
     private Filters.TYPE mNewType;
 
@@ -51,7 +52,7 @@ public class CameraRender implements GLSurfaceView.Renderer {
             1.0f, 1.0f      // 3 top right
     });
 
-    public CameraRender(@Nullable CameraHandler cameraHandler) {
+    public CameraRenderer(@Nullable CameraHandler cameraHandler) {
         mCameraHandler = cameraHandler;
         mTextureId = -1;
 
@@ -61,7 +62,7 @@ public class CameraRender implements GLSurfaceView.Renderer {
         mNewType = Filters.TYPE.NO_FILTER;
     }
 
-    public FilterProgram getProgram() {
+    public FilterBaseProgram getProgram() {
         return mProgram;
     }
 
@@ -74,14 +75,15 @@ public class CameraRender implements GLSurfaceView.Renderer {
         if (mCameraHandler == null) {
             gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         } else {
-            mProgram = Filters.switchProgramByType(mTYPE);
+            mProgram = Filters.switchProgramByTypeForCamera(mTYPE);
             mGL10 = gl;
             mRatio = 1f;
             mCoordsPerVertex = 2;
             mVertexCount = 4;
             initVertexArray();
             mTexCoordStride = 2 * SIZEOF_FLOAT;
-            mTextureId = mProgram.createTextureObject();
+            mTextureId = createTextureObject();
+            mProgram.getProgramHandle();
             mSurfaceTexture = new SurfaceTexture(mTextureId);
             mCameraHandler.sendMessage(mCameraHandler.obtainMessage(
                     CameraHandler.MSG_SET_SURFACE_TEXTURE, mSurfaceTexture));
@@ -122,12 +124,12 @@ public class CameraRender implements GLSurfaceView.Renderer {
             mSurfaceTexture.getTransformMatrix(mSTMatrix);
             mProgram.draw(
                     mVertexArray,
+                    mTexCoordArray,
+                    mTextureId,
                     mVertexCount,
                     mCoordsPerVertex,
                     mTexCoordStride,
                     mSTMatrix,
-                    mTexCoordArray,
-                    mTextureId,
                     mTexCoordStride);
         }
     }
@@ -167,10 +169,37 @@ public class CameraRender implements GLSurfaceView.Renderer {
 
     private void changeProgram() {
         mProgram.release();
-        mProgram = Filters.switchProgramByType(mNewType);
+        mProgram = Filters.switchProgramByTypeForCamera(mNewType);
+        mProgram.getProgramHandle();
 
         mIncomingSizeUpdated = true;
         mTYPE = mNewType;
+    }
+
+    public int createTextureObject() {
+        int[] textures = new int[1];
+        GLES20.glGenTextures(1, textures, 0);
+        GlUtil.checkGlError("glGenTextures");
+
+        int texId = textures[0];
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texId);
+        GlUtil.checkGlError("glBindTexture " + texId);
+
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_MIN_FILTER,
+                GLES20.GL_NEAREST);
+        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_MAG_FILTER,
+                GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_WRAP_S,
+                GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES,
+                GLES20.GL_TEXTURE_WRAP_T,
+                GLES20.GL_CLAMP_TO_EDGE);
+        GlUtil.checkGlError("glTexParameter");
+
+        return texId;
     }
 
 }
