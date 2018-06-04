@@ -2,12 +2,12 @@ package ua.kh.oleksii.melnykov.cameraeffects.filters;
 
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
-import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.nio.FloatBuffer;
 
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
 /**
@@ -37,9 +37,9 @@ public abstract class FilterBaseProgram {
     protected FilterBaseProgram() {
     }
 
-    protected abstract String getShader();
-
     protected abstract String getVertexShader();
+
+    protected abstract String getShader();
 
     public int getProgramHandle() {
         setup();
@@ -167,31 +167,31 @@ public abstract class FilterBaseProgram {
 
     public abstract void optionalDraw(int textureId);
 
-    public abstract boolean isNeedTwoSettingParameters();
+    public abstract boolean isNeedFirstSettingParameter();
+
+    public abstract boolean isNeedSecondSettingParameters();
+
+    public abstract boolean isNeedThirdSettingParameters();
 
     public abstract void setFirstSettingsValue(int newValue);
 
     public abstract void setSecondSettingsValue(int newValue);
 
+    public abstract int getThirdSettingsValue();
+
     public abstract int getFirstSettingsValue();
 
     public abstract int getSecondSettingsValue();
 
-    @DrawableRes
-    public abstract int getFirstLeftIconResId();
+    public abstract void setThirdSettingsValue(int newValue);
 
-    @DrawableRes
-    public abstract int getFirstRightIconResId();
-
-    @DrawableRes
-    public abstract int getSecondLeftIconResId();
-
-    @DrawableRes
-    public abstract int getSecondRightIconResId();
+    public abstract boolean isTouchListenerEnable();
 
     public void release() {
         GLES20.glDeleteProgram(mProgramHandle);
         mProgramHandle = -1;
     }
 
+    public abstract void setTouchCoordinate(float x, float y, int screenWidth, int screenHeight,
+                                            @Nullable CameraType cameraType);
 }

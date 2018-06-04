@@ -1,6 +1,7 @@
 package ua.kh.oleksii.melnykov.cameraeffects.gallery;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
@@ -8,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -20,6 +22,7 @@ import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.Display;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
@@ -47,6 +50,9 @@ public class GalleryActivity extends AppCompatActivity {
     public static final int GET_IMAGE_FROM_GALLERY = 369;
     public static final String KEY_SAVE_INSTANSE_IMAGE_URI = "GalleryActivity.KEY_SAVE_INSTANSE_IMAGE_URI";
 
+    private int mScreenWidth;
+    private int mScreenHeight;
+
     //region view поля
     private TextView mErrorText;
     private GLSurfaceView mGLSurfaceView;
@@ -54,14 +60,18 @@ public class GalleryActivity extends AppCompatActivity {
     private ConstraintLayout mListLayout;
     private ImageView mToCamera;
     private ConstraintLayout mFilterSettingsLayout;
-    private ConstraintLayout mFilterSetting1Laoyout;
-    private ConstraintLayout mFilterSetting2Laoyout;
+    private ConstraintLayout mFilterSetting1Layout;
+    private ConstraintLayout mFilterSetting2Layout;
+    private ConstraintLayout mFilterSetting3Layout;
     private ImageView mFilterSetting1LeftIcon;
     private ImageView mFilterSetting1RightIcon;
     private SeekBar mFilterSetting1SeekBar;
     private ImageView mFilterSetting2LeftIcon;
     private ImageView mFilterSetting2RightIcon;
     private SeekBar mFilterSetting2SeekBar;
+    private ImageView mFilterSetting3LeftIcon;
+    private ImageView mFilterSetting3RightIcon;
+    private SeekBar mFilterSetting3SeekBar;
     //endregion
 
     private FilterAdapter mFilterAdapter;
@@ -72,10 +82,17 @@ public class GalleryActivity extends AppCompatActivity {
         return new Intent(context, GalleryActivity.class);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        mScreenWidth = size.x;
+        mScreenHeight = size.y;
 
         //region инициализация view
         ImageButton saveImage = findViewById(R.id.gallery_save_image);
@@ -85,14 +102,18 @@ public class GalleryActivity extends AppCompatActivity {
         mListLayout = findViewById(R.id.include_filters_list_layout);
         mToCamera = findViewById(R.id.gallery_back_to_camera);
         mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
-        mFilterSetting1Laoyout = findViewById(R.id.include_filter_setting1);
-        mFilterSetting2Laoyout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting1Layout = findViewById(R.id.include_filter_setting1);
+        mFilterSetting2Layout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting3Layout = findViewById(R.id.include_filter_setting3);
         mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
         mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
         mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
         mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
         mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
         mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
+        mFilterSetting3LeftIcon = findViewById(R.id.include_filter_setting3_left_icon);
+        mFilterSetting3RightIcon = findViewById(R.id.include_filter_setting3_right_icon);
+        mFilterSetting3SeekBar = findViewById(R.id.include_filter_setting3_seek_bar);
         //endregion
 
         //region подключение слушателей для view
@@ -104,6 +125,15 @@ public class GalleryActivity extends AppCompatActivity {
             } else initFilterSettings();
         };
         mToCamera.setOnClickListener(v -> onBackPressed());
+        mGLSurfaceView.setOnTouchListener((v, event) -> {
+            if (mRenderer.getProgram() != null &&
+                    mRenderer.getProgram().isTouchListenerEnable()) {
+                mRenderer.getProgram().setTouchCoordinate(event.getX(), event.getY(),
+                        mScreenWidth, mScreenHeight, null);
+                mGLSurfaceView.requestRender();
+            }
+            return true;
+        });
         //endregion
 
         //region настройка RecyclerView
@@ -122,6 +152,7 @@ public class GalleryActivity extends AppCompatActivity {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.GONE);
         mFilterSettingsLayout.setVisibility(View.GONE);
+        saveImage.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getExternalReadPermission())
@@ -131,23 +162,24 @@ public class GalleryActivity extends AppCompatActivity {
 
     private void initFilterSettings() {
         mFilterSettingsLayout.setVisibility(View.VISIBLE);
+        boolean isWithFilterEdit = false;
 
-        mFilterSetting1Laoyout.setVisibility(View.VISIBLE);
-        mFilterSetting1LeftIcon.setImageResource(mRenderer.getProgram().getFirstLeftIconResId());
-        mFilterSetting1RightIcon.setImageResource(mRenderer.getProgram().getFirstRightIconResId());
-        mFilterSetting1SeekBar.setProgress(mRenderer.getProgram().getFirstSettingsValue());
-        mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                mRenderer.getProgram().setFirstSettingsValue(progress);
-                mGLSurfaceView.requestRender();
-            }
-        });
+        if (mRenderer.getProgram().isNeedFirstSettingParameter()) {
+            isWithFilterEdit = true;
+            mFilterSetting1Layout.setVisibility(View.VISIBLE);
+            mFilterSetting1SeekBar.setProgress(mRenderer.getProgram().getFirstSettingsValue());
+            mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mRenderer.getProgram().setFirstSettingsValue(progress);
+                    mGLSurfaceView.requestRender();
+                }
+            });
+        } else mFilterSetting1Layout.setVisibility(View.GONE);
 
-        if (mRenderer.getProgram().isNeedTwoSettingParameters()) {
-            mFilterSetting2Laoyout.setVisibility(View.VISIBLE);
-            mFilterSetting2LeftIcon.setImageResource(mRenderer.getProgram().getSecondLeftIconResId());
-            mFilterSetting2RightIcon.setImageResource(mRenderer.getProgram().getSecondRightIconResId());
+        if (mRenderer.getProgram().isNeedSecondSettingParameters()) {
+            isWithFilterEdit = true;
+            mFilterSetting2Layout.setVisibility(View.VISIBLE);
             mFilterSetting2SeekBar.setProgress(mRenderer.getProgram().getSecondSettingsValue());
             mFilterSetting2SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
                 @Override
@@ -156,7 +188,23 @@ public class GalleryActivity extends AppCompatActivity {
                     mGLSurfaceView.requestRender();
                 }
             });
-        } else mFilterSetting2Laoyout.setVisibility(View.GONE);
+        } else mFilterSetting2Layout.setVisibility(View.GONE);
+
+        if (mRenderer.getProgram().isNeedThirdSettingParameters()) {
+            isWithFilterEdit = true;
+            mFilterSetting3Layout.setVisibility(View.VISIBLE);
+            mFilterSetting3SeekBar.setProgress(mRenderer.getProgram().getThirdSettingsValue());
+            mFilterSetting3SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mRenderer.getProgram().setThirdSettingsValue(progress);
+                    mGLSurfaceView.requestRender();
+                }
+            });
+        } else mFilterSetting3Layout.setVisibility(View.GONE);
+
+        if (!isWithFilterEdit)
+            mFilterSetting2Layout.setVisibility(View.GONE);
     }
 
     private void onSaveImage() {
@@ -257,21 +305,6 @@ public class GalleryActivity extends AppCompatActivity {
         if (mFilterSettingsLayout.getVisibility() == View.VISIBLE)
             mFilterSettingsLayout.setVisibility(View.GONE);
         else super.onBackPressed();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (mGLSurfaceView != null && mRenderer != null) {
-            mGLSurfaceView.onPause();
-//            mGLSurfaceView.queueEvent(() -> mRenderer.getProgram().release());
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mGLSurfaceView != null && mRenderer != null) mGLSurfaceView.onResume();
     }
 
 }

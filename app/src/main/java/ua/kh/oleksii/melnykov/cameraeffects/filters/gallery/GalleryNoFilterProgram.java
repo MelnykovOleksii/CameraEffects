@@ -2,6 +2,7 @@ package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
 import android.opengl.GLES20;
 
+import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
@@ -13,11 +14,11 @@ import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class GalleryNoFilterBaseProgram extends FilterBaseProgram {
+public class GalleryNoFilterProgram extends FilterBaseProgram {
 
     private int mGLUniformTexture;
 
-    public GalleryNoFilterBaseProgram() {
+    public GalleryNoFilterProgram() {
 
     }
 
@@ -63,13 +64,38 @@ public class GalleryNoFilterBaseProgram extends FilterBaseProgram {
     }
 
     @Override
-    public boolean isNeedTwoSettingParameters() {
+    public boolean isNeedFirstSettingParameter() {
+        return false;
+    }
+
+    @Override
+    public boolean isNeedSecondSettingParameters() {
+        return false;
+    }
+
+    @Override
+    public boolean isNeedThirdSettingParameters() {
         return false;
     }
 
     @Override
     public int getSecondSettingsValue() {
         return 0;
+    }
+
+    @Override
+    public int getThirdSettingsValue() {
+        return 0;
+    }
+
+    @Override
+    public void setThirdSettingsValue(int newValue) {
+
+    }
+
+    @Override
+    public boolean isTouchListenerEnable() {
+        return false;
     }
 
     @Override
@@ -88,23 +114,8 @@ public class GalleryNoFilterBaseProgram extends FilterBaseProgram {
     }
 
     @Override
-    public int getFirstLeftIconResId() {
-        return 0;
-    }
+    public void setTouchCoordinate(float x, float y, int screenWidth, int screenHeight, CameraType cameraType) {
 
-    @Override
-    public int getFirstRightIconResId() {
-        return 0;
-    }
-
-    @Override
-    public int getSecondLeftIconResId() {
-        return 0;
-    }
-
-    @Override
-    public int getSecondRightIconResId() {
-        return 0;
     }
 
 }

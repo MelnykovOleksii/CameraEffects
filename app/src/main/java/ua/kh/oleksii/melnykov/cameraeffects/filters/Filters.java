@@ -3,10 +3,14 @@ package ua.kh.oleksii.melnykov.cameraeffects.filters;
 import android.support.annotation.StringRes;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
-import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraDistortionFilterBaseProgram;
-import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraNoFilterBaseProgram;
-import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryDistortionFilterBaseProgram;
-import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryNoFilterBaseProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraColorFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraContrastFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraDistortionFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraNoFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryColorFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryContrastFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryDistortionFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryNoFilterProgram;
 
 /**
  * <p> Created by Melnykov Oleksii on 19.05.2018. <br>
@@ -22,11 +26,15 @@ public class Filters {
         switch (type) {
             case NO_FILTER:
             default:
-                return new CameraNoFilterBaseProgram();
+                return new CameraNoFilterProgram();
             case CUSHION_DISTORTION:
-                return new CameraDistortionFilterBaseProgram(true);
+                return new CameraDistortionFilterProgram(true);
             case BARREL_DISTORTION:
-                return new CameraDistortionFilterBaseProgram(false);
+                return new CameraDistortionFilterProgram(false);
+            case CONTRAST:
+                return new CameraContrastFilterProgram();
+            case COLOR:
+                return new CameraColorFilterProgram();
         }
     }
 
@@ -34,19 +42,24 @@ public class Filters {
         switch (type) {
             case NO_FILTER:
             default:
-                return new GalleryNoFilterBaseProgram();
+                return new GalleryNoFilterProgram();
             case CUSHION_DISTORTION:
-                return new GalleryDistortionFilterBaseProgram(true);
+                return new GalleryDistortionFilterProgram(true);
             case BARREL_DISTORTION:
-                return new GalleryDistortionFilterBaseProgram(false);
+                return new GalleryDistortionFilterProgram(false);
+            case CONTRAST:
+                return new GalleryContrastFilterProgram();
+            case COLOR:
+                return new GalleryColorFilterProgram();
         }
     }
-
 
     public enum TYPE {
         NO_FILTER(R.string.filter_no),
         CUSHION_DISTORTION(R.string.filter_distortion_cushion),
-        BARREL_DISTORTION(R.string.filter_distortion_barrel);
+        BARREL_DISTORTION(R.string.filter_distortion_barrel),
+        CONTRAST(R.string.filter_contrast),
+        COLOR(R.string.filter_color);
 
         @StringRes
         private int nameId;

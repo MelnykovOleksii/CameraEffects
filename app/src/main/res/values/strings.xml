@@ -18,6 +18,8 @@
     <string name="filter_no">Без фильтра</string>
     <string name="filter_distortion_cushion">Дисторсия \n подушкообразная</string>
     <string name="filter_distortion_barrel">Дисторсия \n бочкообразная</string>
+    <string name="filter_contrast">Контраст</string>
+    <string name="filter_color">Цвет</string>
     <!--endregion-->
 
 </resources>

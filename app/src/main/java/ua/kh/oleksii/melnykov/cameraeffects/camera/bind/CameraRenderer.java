@@ -202,4 +202,11 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
         return texId;
     }
 
+    public int getWidth() {
+        return mIncomingWidth;
+    }
+
+    public int getHeight() {
+        return mIncomingHeight;
+    }
 }

@@ -24,6 +24,16 @@
         app:layout_constraintStart_toStartOf="@+id/gallery_surface_view"
         app:layout_constraintTop_toBottomOf="@+id/gallery_surface_view" />
 
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/gallery_surface_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="3:4"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ImageButton
         android:id="@+id/gallery_save_image"
         android:layout_width="56dp"
@@ -36,15 +46,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/ic_apply" />
-
-    <android.opengl.GLSurfaceView
-        android:id="@+id/gallery_surface_view"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="3:4"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/gallery_error_text"

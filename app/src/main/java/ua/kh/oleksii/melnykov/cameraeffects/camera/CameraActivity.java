@@ -1,12 +1,14 @@
 package ua.kh.oleksii.melnykov.cameraeffects.camera;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -18,6 +20,7 @@ import android.support.v4.content.PermissionChecker;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.Display;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
@@ -51,6 +54,9 @@ public class CameraActivity extends AppCompatActivity {
     private static final int CAMERA_PERMISSION = 147;
     //endregion
 
+    private int mScreenWidth;
+    private int mScreenHeight;
+
     //region view поля
     private TextView mErrorText;
     private ImageButton mSwitchCamera;
@@ -59,14 +65,18 @@ public class CameraActivity extends AppCompatActivity {
     private ConstraintLayout mListLayout;
     private ImageView mToGallery;
     private ConstraintLayout mFilterSettingsLayout;
-    private ConstraintLayout mFilterSetting1Laoyout;
-    private ConstraintLayout mFilterSetting2Laoyout;
+    private ConstraintLayout mFilterSetting1Layout;
+    private ConstraintLayout mFilterSetting2Layout;
+    private ConstraintLayout mFilterSetting3Layout;
     private ImageView mFilterSetting1LeftIcon;
     private ImageView mFilterSetting1RightIcon;
     private SeekBar mFilterSetting1SeekBar;
     private ImageView mFilterSetting2LeftIcon;
     private ImageView mFilterSetting2RightIcon;
     private SeekBar mFilterSetting2SeekBar;
+    private ImageView mFilterSetting3LeftIcon;
+    private ImageView mFilterSetting3RightIcon;
+    private SeekBar mFilterSetting3SeekBar;
     //endregion
 
     private FilterAdapter mFilterAdapter;
@@ -91,10 +101,17 @@ public class CameraActivity extends AppCompatActivity {
         return new Intent(context, CameraActivity.class);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        mScreenWidth = size.x;
+        mScreenHeight = size.y;
 
         //region инициализация view
         Button takePicture = findViewById(R.id.camera_take_picture);
@@ -105,14 +122,18 @@ public class CameraActivity extends AppCompatActivity {
         mListLayout = findViewById(R.id.include_filters_list_layout);
         mToGallery = findViewById(R.id.main_gallery);
         mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
-        mFilterSetting1Laoyout = findViewById(R.id.include_filter_setting1);
-        mFilterSetting2Laoyout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting1Layout = findViewById(R.id.include_filter_setting1);
+        mFilterSetting2Layout = findViewById(R.id.include_filter_setting2);
+        mFilterSetting3Layout = findViewById(R.id.include_filter_setting3);
         mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
         mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
         mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
         mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
         mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
         mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
+        mFilterSetting3LeftIcon = findViewById(R.id.include_filter_setting3_left_icon);
+        mFilterSetting3RightIcon = findViewById(R.id.include_filter_setting3_right_icon);
+        mFilterSetting3SeekBar = findViewById(R.id.include_filter_setting3_seek_bar);
         //endregion
 
         //region подключение слушателей для view
@@ -134,6 +155,13 @@ public class CameraActivity extends AppCompatActivity {
         mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
         mGLSurfaceView.setRenderer(mCameraRenderer);
         mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mGLSurfaceView.setOnTouchListener((v, event) -> {
+            if (mCameraRenderer.getProgram() != null &&
+                    mCameraRenderer.getProgram().isTouchListenerEnable())
+                mCameraRenderer.getProgram().setTouchCoordinate(event.getX(), event.getY(),
+                        mScreenWidth, mScreenHeight, mCameraType);
+            return true;
+        });
         //endregion
 
         //region настройка RecyclerView
@@ -153,6 +181,7 @@ public class CameraActivity extends AppCompatActivity {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.GONE);
         mFilterSettingsLayout.setVisibility(View.GONE);
+        takePicture.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getCameraPermission())
@@ -161,22 +190,23 @@ public class CameraActivity extends AppCompatActivity {
 
     private void initFilterSettings() {
         mFilterSettingsLayout.setVisibility(View.VISIBLE);
+        boolean isWithFilterEdit = false;
 
-        mFilterSetting1Laoyout.setVisibility(View.VISIBLE);
-        mFilterSetting1LeftIcon.setImageResource(mCameraRenderer.getProgram().getFirstLeftIconResId());
-        mFilterSetting1RightIcon.setImageResource(mCameraRenderer.getProgram().getFirstRightIconResId());
-        mFilterSetting1SeekBar.setProgress(mCameraRenderer.getProgram().getFirstSettingsValue());
-        mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                mCameraRenderer.getProgram().setFirstSettingsValue(progress);
-            }
-        });
+        if (mCameraRenderer.getProgram().isNeedFirstSettingParameter()) {
+            isWithFilterEdit = true;
+            mFilterSetting1Layout.setVisibility(View.VISIBLE);
+            mFilterSetting1SeekBar.setProgress(mCameraRenderer.getProgram().getFirstSettingsValue());
+            mFilterSetting1SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mCameraRenderer.getProgram().setFirstSettingsValue(progress);
+                }
+            });
+        } else mFilterSetting1Layout.setVisibility(View.GONE);
 
-        if (mCameraRenderer.getProgram().isNeedTwoSettingParameters()) {
-            mFilterSetting2Laoyout.setVisibility(View.VISIBLE);
-            mFilterSetting2LeftIcon.setImageResource(mCameraRenderer.getProgram().getSecondLeftIconResId());
-            mFilterSetting2RightIcon.setImageResource(mCameraRenderer.getProgram().getSecondRightIconResId());
+        if (mCameraRenderer.getProgram().isNeedSecondSettingParameters()) {
+            isWithFilterEdit = true;
+            mFilterSetting2Layout.setVisibility(View.VISIBLE);
             mFilterSetting2SeekBar.setProgress(mCameraRenderer.getProgram().getSecondSettingsValue());
             mFilterSetting2SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
                 @Override
@@ -184,8 +214,22 @@ public class CameraActivity extends AppCompatActivity {
                     mCameraRenderer.getProgram().setSecondSettingsValue(progress);
                 }
             });
-        } else mFilterSetting2Laoyout.setVisibility(View.GONE);
+        } else mFilterSetting2Layout.setVisibility(View.GONE);
 
+        if (mCameraRenderer.getProgram().isNeedThirdSettingParameters()) {
+            isWithFilterEdit = true;
+            mFilterSetting3Layout.setVisibility(View.VISIBLE);
+            mFilterSetting3SeekBar.setProgress(mCameraRenderer.getProgram().getThirdSettingsValue());
+            mFilterSetting3SeekBar.setOnSeekBarChangeListener(new SeekBarProgressChangeListener() {
+                @Override
+                public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                    mCameraRenderer.getProgram().setThirdSettingsValue(progress);
+                }
+            });
+        } else mFilterSetting3Layout.setVisibility(View.GONE);
+
+        if (!isWithFilterEdit)
+            mFilterSetting2Layout.setVisibility(View.GONE);
     }
 
     private void onTakePhotoClick() {
