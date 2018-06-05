@@ -7,6 +7,14 @@ import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
+/**
+ * <p> Created by Melnykov Oleksii on 18.05.2018. <br>
+ * Copyright (c) 2018 LineUp. <br>
+ * Project: CameraEffects, ua.kh.oleksii.melnykov.cameraeffects.filters </p>
+ *
+ * @author Melnykov Oleksii
+ * @version 1.0
+ */
 public class CameraContrastFilterProgram extends FilterBaseProgram {
 
     private int mContrastLocation;

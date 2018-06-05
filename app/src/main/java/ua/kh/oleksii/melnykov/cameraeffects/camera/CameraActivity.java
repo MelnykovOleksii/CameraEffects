@@ -23,6 +23,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -37,6 +38,7 @@ import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraRenderer;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.GalleryActivity;
+import ua.kh.oleksii.melnykov.cameraeffects.utils.RecyclerSectionItemDecoration;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
 /**
@@ -106,6 +108,7 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -174,6 +177,22 @@ public class CameraActivity extends AppCompatActivity {
                 mFilterList.setAdapter(mFilterAdapter);
             }
         });
+        RecyclerSectionItemDecoration sectionItemDecoration =
+                new RecyclerSectionItemDecoration(getResources().getDimensionPixelSize(R.dimen.recycler_section_header_height),
+                        true,
+                        new RecyclerSectionItemDecoration.SectionCallback() {
+                            @Override
+                            public boolean isSection(int position) {
+                                return position == 1 || position == 9;
+                            }
+
+                            @Override
+                            public CharSequence getSectionHeader(int position) {
+                                if (position == 0) return null;
+                                else return position < 9 ? "Коррекция" : "Фильтры";
+                            }
+                        });
+        mFilterList.addItemDecoration(sectionItemDecoration);
         //endregion
 
         //region начальное состояние для view
@@ -363,7 +382,7 @@ public class CameraActivity extends AppCompatActivity {
         boolean hasFrontCamera = cameraInterface.hasFrontCamera();
         boolean hasBackCamera = cameraInterface.hasBackCamera();
 
-        if (hasFrontCamera && hasBackCamera) return CameraType.BACK;
+        if (hasFrontCamera && hasBackCamera) return CameraType.FRONT;
         else if (hasBackCamera) return CameraType.ONLY_BACK;
         else if (hasFrontCamera) return CameraType.ONLY_FRONT;
         else return CameraType.NONE;

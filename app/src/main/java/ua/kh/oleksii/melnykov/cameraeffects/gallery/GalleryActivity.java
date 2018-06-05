@@ -25,6 +25,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Display;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
@@ -34,6 +35,7 @@ import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.ImageRenderer;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.LoadImageUriTask;
+import ua.kh.oleksii.melnykov.cameraeffects.utils.RecyclerSectionItemDecoration;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
 /**
@@ -87,6 +89,7 @@ public class GalleryActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gallery);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -146,6 +149,22 @@ public class GalleryActivity extends AppCompatActivity {
                 mFilterList.setAdapter(mFilterAdapter);
             }
         });
+        RecyclerSectionItemDecoration sectionItemDecoration =
+                new RecyclerSectionItemDecoration(getResources().getDimensionPixelSize(R.dimen.recycler_section_header_height),
+                        true,
+                        new RecyclerSectionItemDecoration.SectionCallback() {
+                            @Override
+                            public boolean isSection(int position) {
+                                return position == 1 || position == 9;
+                            }
+
+                            @Override
+                            public CharSequence getSectionHeader(int position) {
+                                if (position == 0) return null;
+                                else return position < 9 ? "Коррекция" : "Фильтры";
+                            }
+                        });
+        mFilterList.addItemDecoration(sectionItemDecoration);
         //endregion
 
         //region начальное состояние для view

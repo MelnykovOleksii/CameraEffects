@@ -7,6 +7,9 @@ import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
+import static ua.kh.oleksii.melnykov.cameraeffects.utils.CalculateValues.calculatePercentByValue;
+import static ua.kh.oleksii.melnykov.cameraeffects.utils.CalculateValues.calculateValueByPercent;
+
 /**
  * <p> Created by Melnykov Oleksii on 18.05.2018. <br>
  * Copyright (c) 2018 LineUp. <br>
@@ -15,17 +18,17 @@ import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class CameraColorFilterProgram extends FilterBaseProgram {
+public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
 
-    private int mColorFilterLocation;
-    private float[] mColorFilter;
+    private int mTemperatureLocation;
+    private float mTemperature;
 
-    public CameraColorFilterProgram() {
-        mColorFilter = new float[4];
-        mColorFilter[0] = 0.55f;    // R
-        mColorFilter[1] = 0.44f;    // G
-        mColorFilter[2] = 0.74f;    // B
-        mColorFilter[3] = 1.0f;     // A
+    private int mTintLocation;
+    private float mTint;
+
+    public CameraWhiteBalanceFilterProgram() {
+        mTemperature = calculateTemperature(5000f);
+        mTint = 0f;
     }
 
     @Override
@@ -46,14 +49,31 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
         return "#extension GL_OES_EGL_image_external : require\n" +
                 "varying vec2 mOutputTextureCoordinate;\n" +
                 "uniform samplerExternalOES sTexture;\n" +
+                "const vec3 warmFilter = vec3(0.93, 0.54, 0.0);\n" +
+                "const mat3 RGBtoYIQ = mat3(0.299, 0.587, 0.114, 0.596, -0.274, -0.322, 0.212, -0.523, 0.311);\n" +
+                "const mat3 YIQtoRGB = mat3(1.0, 0.956, 0.621, 1.0, -0.272, -0.647, 1.0, -1.105, 1.702);\n" +
                 "" +
-                "uniform vec4 mColorFilter;\n" +
+                "uniform float mTemperature;\n" +
+                "uniform float mTint;\n" +
+                "" +
                 "" +
                 "void main() {\n" +
-                "    vec4 tc = texture2D(sTexture, mOutputTextureCoordinate);\n" +
-                "    gl_FragColor = vec4(tc.r * mColorFilter.r, tc.g * mColorFilter.g, tc.b" +
-                " * mColorFilter.b, tc.a * mColorFilter.a);\n" +
-                "}\n";
+                "	vec4 source = texture2D(sTexture, mOutputTextureCoordinate);\n" +
+                "	\n" +
+                "	vec3 yiq = RGBtoYIQ * source.rgb; //adjusting mTint\n" +
+                "	yiq.b = clamp(yiq.b + mTint*0.5226*0.1, -0.5226, 0.5226);\n" +
+                "	vec3 rgb = YIQtoRGB * yiq;\n" +
+                "" +
+                "	vec3 processed = vec3(\n" +
+                "		(rgb.r < 0.5 ? (2.0 * rgb.r * warmFilter.r) : (1.0 - 2.0 * (1.0 - rgb.r) * " +
+                "           (1.0 - warmFilter.r))), //adjusting temperature\n" +
+                "		(rgb.g < 0.5 ? (2.0 * rgb.g * warmFilter.g) : (1.0 - 2.0 * (1.0 - rgb.g) * " +
+                "           (1.0 - warmFilter.g))), \n" +
+                "		(rgb.b < 0.5 ? (2.0 * rgb.b * warmFilter.b) : (1.0 - 2.0 * (1.0 - rgb.b) * " +
+                "           (1.0 - warmFilter.b))));\n" +
+                "" +
+                "	gl_FragColor = vec4(mix(rgb, processed, mTemperature), source.a);\n" +
+                "}";
     }
 
     @Override
@@ -76,14 +96,20 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
             setTexSize(256, 256);
         }
 
-        mColorFilterLocation = GLES30.glGetUniformLocation(mProgramHandle, "mColorFilter");
-        GlUtil.checkLocation(mColorFilterLocation, "mColorFilter");
+        mTemperatureLocation = GLES30.glGetUniformLocation(mProgramHandle, "mTemperature");
+        GlUtil.checkLocation(mTemperatureLocation, "mTemperature");
+
+        mTintLocation = GLES30.glGetUniformLocation(mProgramHandle, "mTint");
+        GlUtil.checkLocation(mTintLocation, "mTint");
     }
 
     @Override
     public void optionalDraw(int textureId) {
-        GLES20.glUniform4fv(mColorFilterLocation, 1, mColorFilter, 0);
-        GlUtil.checkGlError("glUniform4fv");
+        GLES20.glUniform1f(mTemperatureLocation, mTemperature);
+        GlUtil.checkGlError("glUniform1f");
+
+        GLES20.glUniform1f(mTintLocation, mTint);
+        GlUtil.checkGlError("glUniform1f");
     }
 
     @Override
@@ -98,37 +124,38 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
 
     @Override
     public boolean isNeedThirdSettingParameters() {
-        return true;
+        return false;
     }
 
     @Override
     public int getFirstSettingsValue() {
-        return (int) (mColorFilter[0] * 100f - 0.1f);
+        return calculatePercentByValue(1f, 10f, 5f);
     }
 
     @Override
     public void setFirstSettingsValue(int newValue) {
-        mColorFilter[0] = (1f - 0.1f) * newValue / 100 + 0.1f;
+        float newTemperature = calculateValueByPercent(1000f, 10000f, newValue);
+        mTemperature = calculateTemperature(newTemperature);
     }
 
     @Override
     public int getSecondSettingsValue() {
-        return (int) (mColorFilter[1] * 100 - 0.1f);
+        return calculatePercentByValue(0f, 1.5f, mTint);
     }
 
     @Override
     public void setSecondSettingsValue(int newValue) {
-        mColorFilter[1] = (1f - 0.1f) * newValue / 100 + 0.1f;
+        mTint = calculateValueByPercent(0f, 1.5f, newValue);
     }
 
     @Override
     public int getThirdSettingsValue() {
-        return (int) (mColorFilter[2] * 100 - 0.1f);
+        return 0;
     }
 
     @Override
     public void setThirdSettingsValue(int newValue) {
-        mColorFilter[2] = (1f - 0.1f) * newValue / 100 + 0.1f;
+
     }
 
     @Override
@@ -139,6 +166,11 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
     @Override
     public void setTouchCoordinate(float x, float y, int screenWidth, int screenHeight, CameraType cameraType) {
 
+    }
+
+    private float calculateTemperature(float value) {
+        return value < 5000f ?
+                0.0004f * (value - 5000f) : 0.00006f * (value - 5000f);
     }
 
 }

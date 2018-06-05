@@ -7,6 +7,9 @@ import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
 
+import static ua.kh.oleksii.melnykov.cameraeffects.utils.CalculateValues.calculatePercentByValue;
+import static ua.kh.oleksii.melnykov.cameraeffects.utils.CalculateValues.calculateValueByPercent;
+
 /**
  * <p> Created by Melnykov Oleksii on 18.05.2018. <br>
  * Copyright (c) 2018 LineUp. <br>
@@ -15,17 +18,13 @@ import ua.kh.oleksii.melnykov.cameraeffects.utils.GlUtil;
  * @author Melnykov Oleksii
  * @version 1.0
  */
-public class CameraColorFilterProgram extends FilterBaseProgram {
+public class CameraGammaFilterProgram extends FilterBaseProgram {
 
-    private int mColorFilterLocation;
-    private float[] mColorFilter;
+    private int mGamaFilterLocation;
+    private float mGama;
 
-    public CameraColorFilterProgram() {
-        mColorFilter = new float[4];
-        mColorFilter[0] = 0.55f;    // R
-        mColorFilter[1] = 0.44f;    // G
-        mColorFilter[2] = 0.74f;    // B
-        mColorFilter[3] = 1.0f;     // A
+    public CameraGammaFilterProgram() {
+        mGama = 1.2f; // from 0.0 to 3.0
     }
 
     @Override
@@ -47,13 +46,12 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
                 "varying vec2 mOutputTextureCoordinate;\n" +
                 "uniform samplerExternalOES sTexture;\n" +
                 "" +
-                "uniform vec4 mColorFilter;\n" +
+                "uniform float mGamma;\n" +
                 "" +
-                "void main() {\n" +
-                "    vec4 tc = texture2D(sTexture, mOutputTextureCoordinate);\n" +
-                "    gl_FragColor = vec4(tc.r * mColorFilter.r, tc.g * mColorFilter.g, tc.b" +
-                " * mColorFilter.b, tc.a * mColorFilter.a);\n" +
-                "}\n";
+                " void main() {\n" +
+                "     vec4 textureColor = texture2D(sTexture, mOutputTextureCoordinate);\n" +
+                "     gl_FragColor = vec4(pow(textureColor.rgb, vec3(mGamma)), textureColor.w);\n" +
+                "}";
     }
 
     @Override
@@ -76,14 +74,14 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
             setTexSize(256, 256);
         }
 
-        mColorFilterLocation = GLES30.glGetUniformLocation(mProgramHandle, "mColorFilter");
-        GlUtil.checkLocation(mColorFilterLocation, "mColorFilter");
+        mGamaFilterLocation = GLES30.glGetUniformLocation(mProgramHandle, "mGamma");
+        GlUtil.checkLocation(mGamaFilterLocation, "mGamma");
     }
 
     @Override
     public void optionalDraw(int textureId) {
-        GLES20.glUniform4fv(mColorFilterLocation, 1, mColorFilter, 0);
-        GlUtil.checkGlError("glUniform4fv");
+        GLES20.glUniform1f(mGamaFilterLocation, mGama);
+        GlUtil.checkGlError("glUniform1f");
     }
 
     @Override
@@ -93,42 +91,42 @@ public class CameraColorFilterProgram extends FilterBaseProgram {
 
     @Override
     public boolean isNeedSecondSettingParameters() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean isNeedThirdSettingParameters() {
-        return true;
+        return false;
     }
 
     @Override
     public int getFirstSettingsValue() {
-        return (int) (mColorFilter[0] * 100f - 0.1f);
+        return calculatePercentByValue(0.15f, 3f, mGama);
     }
 
     @Override
     public void setFirstSettingsValue(int newValue) {
-        mColorFilter[0] = (1f - 0.1f) * newValue / 100 + 0.1f;
+        mGama = calculateValueByPercent(0.15f, 3f, newValue);
     }
 
     @Override
     public int getSecondSettingsValue() {
-        return (int) (mColorFilter[1] * 100 - 0.1f);
+        return 0;
     }
 
     @Override
     public void setSecondSettingsValue(int newValue) {
-        mColorFilter[1] = (1f - 0.1f) * newValue / 100 + 0.1f;
+
     }
 
     @Override
     public int getThirdSettingsValue() {
-        return (int) (mColorFilter[2] * 100 - 0.1f);
+        return 0;
     }
 
     @Override
     public void setThirdSettingsValue(int newValue) {
-        mColorFilter[2] = (1f - 0.1f) * newValue / 100 + 0.1f;
+
     }
 
     @Override

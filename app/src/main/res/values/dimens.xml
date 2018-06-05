@@ -26,4 +26,6 @@
     <dimen name="filter_size_border">1dp</dimen>
     <dimen name="filter_text_size">12sp</dimen>
 
+    <dimen name="recycler_section_header_height">24dp</dimen>
+
 </resources>

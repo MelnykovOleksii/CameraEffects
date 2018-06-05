@@ -16,10 +16,15 @@
 
     <!--region названия фильтров-->
     <string name="filter_no">Без фильтра</string>
-    <string name="filter_distortion_cushion">Дисторсия \n подушкообразная</string>
-    <string name="filter_distortion_barrel">Дисторсия \n бочкообразная</string>
+    <string name="filter_distortion_cushion">Дисторсия\nподушкообразная</string>
+    <string name="filter_distortion_barrel">Дисторсия\nбочкообразная</string>
     <string name="filter_contrast">Контраст</string>
     <string name="filter_color">Цвет</string>
+    <string name="filter_gamma">Гамма</string>
+    <string name="filter_brightness">Яркость</string>
+    <string name="filter_saturation">Насыщенность</string>
+    <string name="filter_highlight_shadow">Выделение\nтени</string>
+    <string name="filter_white_balance">Баланс\nбелого</string>
     <!--endregion-->
 
 </resources>
