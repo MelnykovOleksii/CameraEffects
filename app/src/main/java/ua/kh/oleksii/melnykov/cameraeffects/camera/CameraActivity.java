@@ -248,7 +248,7 @@ public class CameraActivity extends AppCompatActivity {
         } else mFilterSetting3Layout.setVisibility(View.GONE);
 
         if (!isWithFilterEdit)
-            mFilterSetting2Layout.setVisibility(View.GONE);
+            mFilterSettingsLayout.setVisibility(View.GONE);
     }
 
     private void onTakePhotoClick() {

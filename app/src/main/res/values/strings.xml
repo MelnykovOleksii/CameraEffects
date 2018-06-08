@@ -25,6 +25,13 @@
     <string name="filter_saturation">Насыщенность</string>
     <string name="filter_highlight_shadow">Выделение\nтени</string>
     <string name="filter_white_balance">Баланс\nбелого</string>
+    <string name="filter_invert">Инвентировать\nцвета</string>
+    <string name="filter_pixelation">Пикселизация</string>
+    <string name="filter_posterize">Постеризация</string>
+    <string name="filter_sobel_edge">Оператор Собеля</string>
+    <string name="filter_emboss">Теснение</string>
+    <string name="filter_vignette">Винъетирование</string>
+    <string name="filter_toon">Эффект\nмультфильма</string>
     <!--endregion-->
 
 </resources>

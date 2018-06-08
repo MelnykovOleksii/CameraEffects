@@ -5,21 +5,35 @@ import android.support.annotation.StringRes;
 import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraBrightnessFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraColorFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraColorInvertFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraContrastFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraDistortionFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraEmbossFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraGammaFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraHighlightShadowFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraNoFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraPixelationFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraPosterizeFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraSaturationFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraSobelEdgeFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraToonFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraVignetteFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.camera.CameraWhiteBalanceFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryBrightnessFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryColorFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryColorInvertFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryContrastFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryDistortionFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryEmbossFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryGammaFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryHighlightShadowFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryNoFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryPixelationFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryPosterizeFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GallerySaturationFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GallerySobelEdgeFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryToonFilterProgram;
+import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryVignetteFilterProgram;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.gallery.GalleryWhiteBalanceFilterProgram;
 
 /**
@@ -61,6 +75,20 @@ public class Filters {
             // Фильтры (c 9й позиции)
             case COLOR:
                 return new CameraColorFilterProgram();
+            case INVERT:
+                return new CameraColorInvertFilterProgram();
+            case PIXELATION:
+                return new CameraPixelationFilterProgram();
+            case POSTERIZE:
+                return new CameraPosterizeFilterProgram();
+            case SOBEL_EDGE:
+                return new CameraSobelEdgeFilterProgram();
+            case EMBOSS:
+                return new CameraEmbossFilterProgram();
+            case VIGNETTE:
+                return new CameraVignetteFilterProgram();
+            case TOON:
+                return new CameraToonFilterProgram();
         }
     }
 
@@ -93,6 +121,20 @@ public class Filters {
             // Фильтры (c 9й позиции)
             case COLOR:
                 return new GalleryColorFilterProgram();
+            case INVERT:
+                return new GalleryColorInvertFilterProgram();
+            case PIXELATION:
+                return new GalleryPixelationFilterProgram();
+            case POSTERIZE:
+                return new GalleryPosterizeFilterProgram();
+            case SOBEL_EDGE:
+                return new GallerySobelEdgeFilterProgram();
+            case EMBOSS:
+                return new GalleryEmbossFilterProgram();
+            case VIGNETTE:
+                return new GalleryVignetteFilterProgram();
+            case TOON:
+                return new GalleryToonFilterProgram();
         }
     }
 
@@ -109,7 +151,14 @@ public class Filters {
         HIGHLIGHT_SHADOW(R.string.filter_highlight_shadow),
         WHITE_BALANCE(R.string.filter_white_balance),
         // Фильтры (c 9й позиции)
-        COLOR(R.string.filter_color);
+        COLOR(R.string.filter_color),
+        INVERT(R.string.filter_invert),
+        PIXELATION(R.string.filter_pixelation),
+        POSTERIZE(R.string.filter_posterize),
+        SOBEL_EDGE(R.string.filter_sobel_edge),
+        EMBOSS(R.string.filter_emboss),
+        VIGNETTE(R.string.filter_vignette),
+        TOON(R.string.filter_toon);
 
         @StringRes
         private int nameId;
