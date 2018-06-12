@@ -1,6 +1,6 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.camera;
 
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.FilterBaseProgram;
@@ -48,19 +48,19 @@ public class CameraNoFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        muTexMatrixLoc = GLES20.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
+        muTexMatrixLoc = GLES30.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
         GlUtil.checkLocation(muTexMatrixLoc, "mTextureMatrix");
 
-        muKernelLoc = GLES20.glGetUniformLocation(mProgramHandle, "uKernel");
+        muKernelLoc = GLES30.glGetUniformLocation(mProgramHandle, "uKernel");
         if (muKernelLoc < 0) {
             muKernelLoc = -1;
             muTexOffsetLoc = -1;
             muColorAdjustLoc = -1;
         } else {
-            muTexOffsetLoc = GLES20.glGetUniformLocation(mProgramHandle, "uTexOffset");
+            muTexOffsetLoc = GLES30.glGetUniformLocation(mProgramHandle, "uTexOffset");
             GlUtil.checkLocation(muTexOffsetLoc, "uTexOffset");
 
-            muColorAdjustLoc = GLES20.glGetUniformLocation(mProgramHandle, "uColorAdjust");
+            muColorAdjustLoc = GLES30.glGetUniformLocation(mProgramHandle, "uColorAdjust");
             GlUtil.checkLocation(muColorAdjustLoc, "uColorAdjust");
 
             setKernel(new float[]{0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f});

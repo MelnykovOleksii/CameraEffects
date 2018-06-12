@@ -1,7 +1,6 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
 import android.graphics.PointF;
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
@@ -79,7 +78,7 @@ public class GalleryDistortionFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        mGLUniformTexture = GLES20.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
+        mGLUniformTexture = GLES30.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
         GlUtil.checkLocation(mGLUniformTexture, "mInputImageTexture");
 
         mScaleLocation = GLES30.glGetUniformLocation(mProgramHandle, "scale");
@@ -98,24 +97,24 @@ public class GalleryDistortionFilterProgram extends FilterBaseProgram {
     @Override
     public void optionalDraw(int textureId) {
         if (textureId != -1) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-            GLES20.glUniform1i(mGLUniformTexture, 0);
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId);
+            GLES30.glUniform1i(mGLUniformTexture, 0);
         }
 
-        GLES20.glUniform1f(mScaleLocation, mScale);
+        GLES30.glUniform1f(mScaleLocation, mScale);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mRadiusLocation, mRadius);
+        GLES30.glUniform1f(mRadiusLocation, mRadius);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mAspectRatioLocation, mAspectRatio);
+        GLES30.glUniform1f(mAspectRatioLocation, mAspectRatio);
         GlUtil.checkGlError("glUniform1f");
 
         float[] vec2 = new float[2];
         vec2[0] = mCenter.x;
         vec2[1] = mCenter.y;
-        GLES20.glUniform2fv(mCenterLocation, 1, vec2, 0);
+        GLES30.glUniform2fv(mCenterLocation, 1, vec2, 0);
         GlUtil.checkGlError("glUniform2fv");
     }
 
@@ -183,7 +182,6 @@ public class GalleryDistortionFilterProgram extends FilterBaseProgram {
         float newX = x / screenWidth;
         float newY = y / maxHeight;
         mCenter = new PointF(newX < 0 ? newX * -1 : newX, newY < 0 ? newY * -1 : newY);
-
     }
 
 }

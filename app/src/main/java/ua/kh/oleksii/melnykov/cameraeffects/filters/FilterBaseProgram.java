@@ -1,7 +1,7 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters;
 
 import android.opengl.GLES11Ext;
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
@@ -53,10 +53,10 @@ public abstract class FilterBaseProgram {
         if (mProgramHandle == 0)
             throw new RuntimeException("Unable to create program");
 
-        maPositionLoc = GLES20.glGetAttribLocation(mProgramHandle, "mPosition");
+        maPositionLoc = GLES30.glGetAttribLocation(mProgramHandle, "mPosition");
         GlUtil.checkLocation(maPositionLoc, "mPosition");
 
-        maTextureCoordLoc = GLES20.glGetAttribLocation(mProgramHandle, "mInputTextureCoordinate");
+        maTextureCoordLoc = GLES30.glGetAttribLocation(mProgramHandle, "mInputTextureCoordinate");
         GlUtil.checkLocation(maTextureCoordLoc, "mInputTextureCoordinate");
 
         optionalSetup();
@@ -71,7 +71,7 @@ public abstract class FilterBaseProgram {
 
         GlUtil.checkGlError("draw start");
 
-        GLES20.glUseProgram(mProgramHandle);
+        GLES30.glUseProgram(mProgramHandle);
         GlUtil.checkGlError("glUseProgram");
 
         if (vertexCount == null || coordsPerVertex == null || vertexStride == null ||
@@ -86,63 +86,63 @@ public abstract class FilterBaseProgram {
 
     private void onDrawFromGallery(FloatBuffer vertexBuffer, FloatBuffer texBuffer, int textureId) {
         vertexBuffer.position(0);
-        GLES20.glVertexAttribPointer(maPositionLoc, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+        GLES30.glVertexAttribPointer(maPositionLoc, 2, GLES30.GL_FLOAT, false, 0, vertexBuffer);
 
-        GLES20.glEnableVertexAttribArray(maPositionLoc);
+        GLES30.glEnableVertexAttribArray(maPositionLoc);
 
         texBuffer.position(0);
-        GLES20.glVertexAttribPointer(maTextureCoordLoc, 2, GLES20.GL_FLOAT, false, 0,
+        GLES30.glVertexAttribPointer(maTextureCoordLoc, 2, GLES30.GL_FLOAT, false, 0,
                 texBuffer);
 
-        GLES20.glEnableVertexAttribArray(maTextureCoordLoc);
+        GLES30.glEnableVertexAttribArray(maTextureCoordLoc);
 
         optionalDraw(textureId);
 
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        GLES20.glDisableVertexAttribArray(maPositionLoc);
-        GLES20.glDisableVertexAttribArray(maTextureCoordLoc);
-        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
+        GLES30.glDisableVertexAttribArray(maPositionLoc);
+        GLES30.glDisableVertexAttribArray(maTextureCoordLoc);
+        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
     }
 
     private void onDrawFromCamera(int textureId, float[] texMatrix, Integer coordsPerVertex,
                                   int vertexStride, FloatBuffer vertexBuffer, int texStride,
                                   FloatBuffer texBuffer, int vertexCount) {
 
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
+        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+        GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId);
 
-        GLES20.glUniformMatrix4fv(muTexMatrixLoc, 1, false, texMatrix, 0);
+        GLES30.glUniformMatrix4fv(muTexMatrixLoc, 1, false, texMatrix, 0);
         GlUtil.checkGlError("glUniformMatrix4fv");
 
-        GLES20.glEnableVertexAttribArray(maPositionLoc);
+        GLES30.glEnableVertexAttribArray(maPositionLoc);
         GlUtil.checkGlError("glEnableVertexAttribArray");
 
-        GLES20.glVertexAttribPointer(maPositionLoc, coordsPerVertex,
-                GLES20.GL_FLOAT, false, vertexStride, vertexBuffer);
+        GLES30.glVertexAttribPointer(maPositionLoc, coordsPerVertex,
+                GLES30.GL_FLOAT, false, vertexStride, vertexBuffer);
         GlUtil.checkGlError("glVertexAttribPointer");
 
-        GLES20.glEnableVertexAttribArray(maTextureCoordLoc);
+        GLES30.glEnableVertexAttribArray(maTextureCoordLoc);
         GlUtil.checkGlError("glEnableVertexAttribArray");
 
-        GLES20.glVertexAttribPointer(maTextureCoordLoc, 2,
-                GLES20.GL_FLOAT, false, texStride, texBuffer);
+        GLES30.glVertexAttribPointer(maTextureCoordLoc, 2,
+                GLES30.GL_FLOAT, false, texStride, texBuffer);
         GlUtil.checkGlError("glVertexAttribPointer");
 
         if (muKernelLoc >= 0) {
-            GLES20.glUniform1fv(muKernelLoc, KERNEL_SIZE, mKernel, 0);
-            GLES20.glUniform2fv(muTexOffsetLoc, KERNEL_SIZE, mTexOffset, 0);
-            GLES20.glUniform1f(muColorAdjustLoc, mColorAdjust);
+            GLES30.glUniform1fv(muKernelLoc, KERNEL_SIZE, mKernel, 0);
+            GLES30.glUniform2fv(muTexOffsetLoc, KERNEL_SIZE, mTexOffset, 0);
+            GLES30.glUniform1f(muColorAdjustLoc, mColorAdjust);
         }
 
         optionalDraw(textureId);
 
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertexCount);
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, vertexCount);
         GlUtil.checkGlError("glDrawArrays");
 
-        GLES20.glDisableVertexAttribArray(maPositionLoc);
-        GLES20.glDisableVertexAttribArray(maTextureCoordLoc);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
-        GLES20.glUseProgram(0);
+        GLES30.glDisableVertexAttribArray(maPositionLoc);
+        GLES30.glDisableVertexAttribArray(maTextureCoordLoc);
+        GLES30.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, 0);
+        GLES30.glUseProgram(0);
     }
 
     protected void setKernel(float[] values) {
@@ -188,7 +188,7 @@ public abstract class FilterBaseProgram {
     public abstract boolean isTouchListenerEnable();
 
     public void release() {
-        GLES20.glDeleteProgram(mProgramHandle);
+        GLES30.glDeleteProgram(mProgramHandle);
         mProgramHandle = -1;
     }
 

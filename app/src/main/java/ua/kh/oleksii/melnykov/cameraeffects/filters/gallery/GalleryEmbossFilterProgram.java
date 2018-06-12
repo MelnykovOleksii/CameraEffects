@@ -1,6 +1,5 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
@@ -116,7 +115,7 @@ public class GalleryEmbossFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        mGLUniformTexture = GLES20.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
+        mGLUniformTexture = GLES30.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
         GlUtil.checkLocation(mGLUniformTexture, "mInputImageTexture");
 
         mConvolutionLocation = GLES30.glGetUniformLocation(mProgramHandle, "mConvolution");
@@ -139,18 +138,18 @@ public class GalleryEmbossFilterProgram extends FilterBaseProgram {
     @Override
     public void optionalDraw(int textureId) {
         if (textureId != -1) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-            GLES20.glUniform1i(mGLUniformTexture, 0);
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId);
+            GLES30.glUniform1i(mGLUniformTexture, 0);
         }
 
-        GLES20.glUniform1f(mTexelWidthLocation, mTexelWidth);
+        GLES30.glUniform1f(mTexelWidthLocation, mTexelWidth);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mTexelHeightLocation, mTexelHeight);
+        GLES30.glUniform1f(mTexelHeightLocation, mTexelHeight);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniformMatrix3fv(mConvolutionLocation, 1, false, mConvolution, 0);
+        GLES30.glUniformMatrix3fv(mConvolutionLocation, 1, false, mConvolution, 0);
         GlUtil.checkGlError("glUniformMatrix3fv");
     }
 

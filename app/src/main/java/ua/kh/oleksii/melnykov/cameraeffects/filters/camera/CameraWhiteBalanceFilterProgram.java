@@ -1,6 +1,5 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.camera;
 
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
@@ -27,7 +26,7 @@ public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
     private float mTint;
 
     public CameraWhiteBalanceFilterProgram() {
-        mTemperature = calculateTemperature(5000f);
+        mTemperature = 2f;
         mTint = 0f;
     }
 
@@ -60,36 +59,29 @@ public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
                 "void main() {\n" +
                 "	vec4 source = texture2D(sTexture, mOutputTextureCoordinate);\n" +
                 "	\n" +
-                "	vec3 yiq = RGBtoYIQ * source.rgb; //adjusting mTint\n" +
-                "	yiq.b = clamp(yiq.b + mTint*0.5226*0.1, -0.5226, 0.5226);\n" +
+                "	vec3 yiq = RGBtoYIQ * source.rgb;\n" +
+                "	yiq.g = clamp(yiq.g + mTemperature * 0.05226, -0.5226, 0.5226);\n" +
+                "	yiq.b = clamp(yiq.b + mTint * 0.05226, -0.5226, 0.5226);\n" +
                 "	vec3 rgb = YIQtoRGB * yiq;\n" +
                 "" +
-                "	vec3 processed = vec3(\n" +
-                "		(rgb.r < 0.5 ? (2.0 * rgb.r * warmFilter.r) : (1.0 - 2.0 * (1.0 - rgb.r) * " +
-                "           (1.0 - warmFilter.r))), //adjusting temperature\n" +
-                "		(rgb.g < 0.5 ? (2.0 * rgb.g * warmFilter.g) : (1.0 - 2.0 * (1.0 - rgb.g) * " +
-                "           (1.0 - warmFilter.g))), \n" +
-                "		(rgb.b < 0.5 ? (2.0 * rgb.b * warmFilter.b) : (1.0 - 2.0 * (1.0 - rgb.b) * " +
-                "           (1.0 - warmFilter.b))));\n" +
-                "" +
-                "	gl_FragColor = vec4(mix(rgb, processed, mTemperature), source.a);\n" +
+                "	gl_FragColor = vec4(rgb, source.a);\n" +
                 "}";
     }
 
     @Override
     protected void optionalSetup() {
-        muTexMatrixLoc = GLES20.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
+        muTexMatrixLoc = GLES30.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
         GlUtil.checkLocation(muTexMatrixLoc, "mTextureMatrix");
 
-        muKernelLoc = GLES20.glGetUniformLocation(mProgramHandle, "uKernel");
+        muKernelLoc = GLES30.glGetUniformLocation(mProgramHandle, "uKernel");
         if (muKernelLoc < 0) {
             muKernelLoc = -1;
             muTexOffsetLoc = -1;
             muColorAdjustLoc = -1;
         } else {
-            muTexOffsetLoc = GLES20.glGetUniformLocation(mProgramHandle, "uTexOffset");
+            muTexOffsetLoc = GLES30.glGetUniformLocation(mProgramHandle, "uTexOffset");
             GlUtil.checkLocation(muTexOffsetLoc, "uTexOffset");
-            muColorAdjustLoc = GLES20.glGetUniformLocation(mProgramHandle, "uColorAdjust");
+            muColorAdjustLoc = GLES30.glGetUniformLocation(mProgramHandle, "uColorAdjust");
             GlUtil.checkLocation(muColorAdjustLoc, "uColorAdjust");
 
             setKernel(new float[]{0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f});
@@ -105,10 +97,10 @@ public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
 
     @Override
     public void optionalDraw(int textureId) {
-        GLES20.glUniform1f(mTemperatureLocation, mTemperature);
+        GLES30.glUniform1f(mTemperatureLocation, mTemperature);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mTintLocation, mTint);
+        GLES30.glUniform1f(mTintLocation, mTint);
         GlUtil.checkGlError("glUniform1f");
     }
 
@@ -129,23 +121,22 @@ public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
 
     @Override
     public int getFirstSettingsValue() {
-        return calculatePercentByValue(1f, 10f, 5f);
+        return calculatePercentByValue(-18f, 18f, mTemperature);
     }
 
     @Override
     public void setFirstSettingsValue(int newValue) {
-        float newTemperature = calculateValueByPercent(1000f, 10000f, newValue);
-        mTemperature = calculateTemperature(newTemperature);
+        mTemperature = calculateValueByPercent(-18f, 18f, newValue);
     }
 
     @Override
     public int getSecondSettingsValue() {
-        return calculatePercentByValue(0f, 1.5f, mTint);
+        return calculatePercentByValue(-10f, 10f, mTint);
     }
 
     @Override
     public void setSecondSettingsValue(int newValue) {
-        mTint = calculateValueByPercent(0f, 1.5f, newValue);
+        mTint = calculateValueByPercent(-10f, 10f, newValue);
     }
 
     @Override
@@ -166,11 +157,6 @@ public class CameraWhiteBalanceFilterProgram extends FilterBaseProgram {
     @Override
     public void setTouchCoordinate(float x, float y, int screenWidth, int screenHeight, CameraType cameraType) {
 
-    }
-
-    private float calculateTemperature(float value) {
-        return value < 5000f ?
-                0.0004f * (value - 5000f) : 0.00006f * (value - 5000f);
     }
 
 }

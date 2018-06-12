@@ -252,13 +252,7 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void onTakePhotoClick() {
-        if (isSupportsOpenGLES3() && getCameraPermission() && mCameraInterface != null) {
-            try {
-                mCameraInterface.takePhoto();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+
     }
 
     private void onSwitchCamera() {

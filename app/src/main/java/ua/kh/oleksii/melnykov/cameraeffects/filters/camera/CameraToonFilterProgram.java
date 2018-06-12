@@ -1,6 +1,5 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.camera;
 
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
@@ -29,12 +28,8 @@ public class CameraToonFilterProgram extends FilterBaseProgram {
     private int mThresholdLocation;
     private float mThreshold;
 
-    private int mQuantizationLevelsLocation;
-    private float mQuantizationLevels;
-
     public CameraToonFilterProgram() {
         mThreshold = .2f;
-        mQuantizationLevels = 10f;
     }
 
     @Override
@@ -91,9 +86,8 @@ public class CameraToonFilterProgram extends FilterBaseProgram {
                 "varying vec2 mBottomRightTextureCoordinate;\n" +
                 "" +
                 "uniform float mThreshold;\n" +
-                "uniform float mQuantizationLevels;\n" +
                 "" +
-                "const vec3 W = vec3(0.2125, 0.7154, 0.0721);\n" +
+                "const float mQuantizationLevels = 10.0;\n" +
                 "" +
                 "void main() {\n" +
                 "   vec4 textureColor = texture2D(sTexture, mOutputTextureCoordinate);\n" +
@@ -122,18 +116,18 @@ public class CameraToonFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        muTexMatrixLoc = GLES20.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
+        muTexMatrixLoc = GLES30.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
         GlUtil.checkLocation(muTexMatrixLoc, "mTextureMatrix");
 
-        muKernelLoc = GLES20.glGetUniformLocation(mProgramHandle, "uKernel");
+        muKernelLoc = GLES30.glGetUniformLocation(mProgramHandle, "uKernel");
         if (muKernelLoc < 0) {
             muKernelLoc = -1;
             muTexOffsetLoc = -1;
             muColorAdjustLoc = -1;
         } else {
-            muTexOffsetLoc = GLES20.glGetUniformLocation(mProgramHandle, "uTexOffset");
+            muTexOffsetLoc = GLES30.glGetUniformLocation(mProgramHandle, "uTexOffset");
             GlUtil.checkLocation(muTexOffsetLoc, "uTexOffset");
-            muColorAdjustLoc = GLES20.glGetUniformLocation(mProgramHandle, "uColorAdjust");
+            muColorAdjustLoc = GLES30.glGetUniformLocation(mProgramHandle, "uColorAdjust");
             GlUtil.checkLocation(muColorAdjustLoc, "uColorAdjust");
 
             setKernel(new float[]{0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f});
@@ -142,9 +136,6 @@ public class CameraToonFilterProgram extends FilterBaseProgram {
 
         mThresholdLocation = GLES30.glGetUniformLocation(mProgramHandle, "mThreshold");
         GlUtil.checkLocation(mThresholdLocation, "mThreshold");
-
-        mQuantizationLevelsLocation = GLES30.glGetUniformLocation(mProgramHandle, "mQuantizationLevels");
-        GlUtil.checkLocation(mQuantizationLevelsLocation, "mQuantizationLevels");
 
         mTexelWidthLocation = GLES30.glGetUniformLocation(mProgramHandle, "mTexelWidth");
         GlUtil.checkLocation(mTexelWidthLocation, "mTexelWidth");
@@ -162,16 +153,13 @@ public class CameraToonFilterProgram extends FilterBaseProgram {
 
     @Override
     public void optionalDraw(int textureId) {
-        GLES20.glUniform1f(mTexelWidthLocation, mTexelWidth);
+        GLES30.glUniform1f(mTexelWidthLocation, mTexelWidth);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mTexelHeightLocation, mTexelHeight);
+        GLES30.glUniform1f(mTexelHeightLocation, mTexelHeight);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mThresholdLocation, mThreshold);
-        GlUtil.checkGlError("glUniform1f");
-
-        GLES20.glUniform1f(mQuantizationLevelsLocation, mQuantizationLevels);
+        GLES30.glUniform1f(mThresholdLocation, mThreshold);
         GlUtil.checkGlError("glUniform1f");
     }
 

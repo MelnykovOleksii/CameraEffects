@@ -2,13 +2,15 @@ package ua.kh.oleksii.melnykov.cameraeffects.gallery.bind;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
-import android.opengl.GLES20;
+import android.opengl.GLES30;
 import android.opengl.GLSurfaceView.Renderer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -57,8 +59,12 @@ public class ImageRenderer implements Renderer {
 
     private int mTextureId;
     private Bitmap mBitmap;
+    private CallbackTakeBitmap mCallbackTakeBitmap;
 
-    public ImageRenderer() {
+    public ImageRenderer(Filters.TYPE type) {
+        mTYPE = type;
+        mNewType = type;
+
         mGLCubeBuffer = ByteBuffer.allocateDirect(CUBE.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
@@ -67,15 +73,20 @@ public class ImageRenderer implements Renderer {
         mGLTextureBuffer = ByteBuffer.allocateDirect(TEXTURE_NO_ROTATION.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
+    }
 
-        mTYPE = Filters.TYPE.NO_FILTER;
-        mNewType = Filters.TYPE.NO_FILTER;
+    public ImageRenderer() {
+        this(Filters.TYPE.NO_FILTER);
+    }
+
+    public Bitmap getBitmap() {
+        return mBitmap;
     }
 
     @Override
     public void onSurfaceCreated(final GL10 unused, final EGLConfig config) {
-        GLES20.glClearColor(0f, 0f, 0f, 1f);
-        GLES20.glDisable(GLES20.GL_DEPTH_TEST);
+        GLES30.glClearColor(0f, 0f, 0f, 1f);
+        GLES30.glDisable(GLES30.GL_DEPTH_TEST);
 
         if (mFilter == null) {
             mFilter = Filters.switchProgramByTypeForGallery(mTYPE);
@@ -87,8 +98,8 @@ public class ImageRenderer implements Renderer {
     public void onSurfaceChanged(final GL10 gl, final int width, final int height) {
         mOutputWidth = width;
         mOutputHeight = height;
-        GLES20.glViewport(0, 0, width, height);
-        GLES20.glUseProgram(mTextureId);
+        GLES30.glViewport(0, 0, width, height);
+        GLES30.glUseProgram(mTextureId);
         adjustImageScaling();
         synchronized (mSurfaceChangedWaiter) {
             mSurfaceChangedWaiter.notifyAll();
@@ -97,7 +108,7 @@ public class ImageRenderer implements Renderer {
 
     @Override
     public void onDrawFrame(final GL10 gl) {
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
         if (mBitmap != null) {
             loadBitmap();
@@ -105,9 +116,34 @@ public class ImageRenderer implements Renderer {
             mFilter.setTexSize(mOutputWidth, mOutputHeight);
             mFilter.draw(mGLCubeBuffer, mGLTextureBuffer, mGLTextureId,
                     null, null, null, null, null);
+
+            if (mCallbackTakeBitmap != null) {
+                mCallbackTakeBitmap.takeBitmap(takeBitmap(gl));
+                mCallbackTakeBitmap = null;
+            }
         }
 
         if (mSurfaceTexture != null) mSurfaceTexture.updateTexImage();
+    }
+
+    private Bitmap takeBitmap(GL10 mGL) {
+        final int width = mBitmap.getWidth();
+        final int height = mBitmap.getHeight();
+
+        IntBuffer ib = IntBuffer.allocate(width * height);
+        IntBuffer ibt = IntBuffer.allocate(width * height);
+        mGL.glReadPixels(0, 0, width, height, GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE, ib);
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                ibt.put((height - i - 1) * width + j, ib.get(i * width + j));
+            }
+        }
+
+        Bitmap mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        mBitmap.eraseColor(Color.argb(0, 255, 255, 255));
+        mBitmap.copyPixelsFromBuffer(ibt);
+        return mBitmap;
     }
 
     private void loadBitmap() {
@@ -182,5 +218,13 @@ public class ImageRenderer implements Renderer {
 
     public FilterBaseProgram getProgram() {
         return mFilter;
+    }
+
+    public void setCallbackTakeBitmap(CallbackTakeBitmap callbackTakeBitmap) {
+        mCallbackTakeBitmap = callbackTakeBitmap;
+    }
+
+    public interface CallbackTakeBitmap {
+        void takeBitmap(Bitmap image);
     }
 }

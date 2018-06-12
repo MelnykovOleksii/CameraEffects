@@ -8,11 +8,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
@@ -31,10 +34,17 @@ import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.ImageRenderer;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.LoadImageUriTask;
+import ua.kh.oleksii.melnykov.cameraeffects.utils.ImageGLSurfaceView;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.RecyclerSectionItemDecoration;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
@@ -57,7 +67,7 @@ public class GalleryActivity extends AppCompatActivity {
 
     //region view поля
     private TextView mErrorText;
-    private GLSurfaceView mGLSurfaceView;
+    private ImageGLSurfaceView mImageGLSurfaceView;
     private RecyclerView mFilterList;
     private ConstraintLayout mListLayout;
     private ImageView mToCamera;
@@ -65,14 +75,8 @@ public class GalleryActivity extends AppCompatActivity {
     private ConstraintLayout mFilterSetting1Layout;
     private ConstraintLayout mFilterSetting2Layout;
     private ConstraintLayout mFilterSetting3Layout;
-    private ImageView mFilterSetting1LeftIcon;
-    private ImageView mFilterSetting1RightIcon;
     private SeekBar mFilterSetting1SeekBar;
-    private ImageView mFilterSetting2LeftIcon;
-    private ImageView mFilterSetting2RightIcon;
     private SeekBar mFilterSetting2SeekBar;
-    private ImageView mFilterSetting3LeftIcon;
-    private ImageView mFilterSetting3RightIcon;
     private SeekBar mFilterSetting3SeekBar;
     //endregion
 
@@ -101,21 +105,15 @@ public class GalleryActivity extends AppCompatActivity {
         ImageButton saveImage = findViewById(R.id.gallery_save_image);
         mErrorText = findViewById(R.id.gallery_error_text);
         mFilterList = findViewById(R.id.include_filters_list);
-        mGLSurfaceView = findViewById(R.id.gallery_surface_view);
+        mImageGLSurfaceView = findViewById(R.id.gallery_surface_view);
         mListLayout = findViewById(R.id.include_filters_list_layout);
         mToCamera = findViewById(R.id.gallery_back_to_camera);
         mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
         mFilterSetting1Layout = findViewById(R.id.include_filter_setting1);
         mFilterSetting2Layout = findViewById(R.id.include_filter_setting2);
         mFilterSetting3Layout = findViewById(R.id.include_filter_setting3);
-        mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
-        mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
         mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
-        mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
-        mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
         mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
-        mFilterSetting3LeftIcon = findViewById(R.id.include_filter_setting3_left_icon);
-        mFilterSetting3RightIcon = findViewById(R.id.include_filter_setting3_right_icon);
         mFilterSetting3SeekBar = findViewById(R.id.include_filter_setting3_seek_bar);
         //endregion
 
@@ -124,16 +122,16 @@ public class GalleryActivity extends AppCompatActivity {
         mOnFilterItemClickCallback = (position, isSecondClick) -> {
             if (!isSecondClick) {
                 mRenderer.changeFilter(position);
-                mGLSurfaceView.requestRender();
+                mImageGLSurfaceView.requestRender();
             } else initFilterSettings();
         };
         mToCamera.setOnClickListener(v -> onBackPressed());
-        mGLSurfaceView.setOnTouchListener((v, event) -> {
+        mImageGLSurfaceView.setOnTouchListener((v, event) -> {
             if (mRenderer.getProgram() != null &&
                     mRenderer.getProgram().isTouchListenerEnable()) {
                 mRenderer.getProgram().setTouchCoordinate(event.getX(), event.getY(),
                         mScreenWidth, mScreenHeight, null);
-                mGLSurfaceView.requestRender();
+                mImageGLSurfaceView.requestRender();
             }
             return true;
         });
@@ -171,7 +169,7 @@ public class GalleryActivity extends AppCompatActivity {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.GONE);
         mFilterSettingsLayout.setVisibility(View.GONE);
-        saveImage.setVisibility(View.GONE);
+//        saveImage.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getExternalReadPermission())
@@ -191,7 +189,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setFirstSettingsValue(progress);
-                    mGLSurfaceView.requestRender();
+                    mImageGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting1Layout.setVisibility(View.GONE);
@@ -204,7 +202,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setSecondSettingsValue(progress);
-                    mGLSurfaceView.requestRender();
+                    mImageGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting2Layout.setVisibility(View.GONE);
@@ -217,7 +215,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setThirdSettingsValue(progress);
-                    mGLSurfaceView.requestRender();
+                    mImageGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting3Layout.setVisibility(View.GONE);
@@ -227,7 +225,42 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onSaveImage() {
+        mRenderer.setCallbackTakeBitmap(image -> {
+            mImageGLSurfaceView.setForceSize(null, null);
+            mImageGLSurfaceView.requestRender();
 
+            File path = Environment
+                    .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+            File file = new File(path, "Effects" + "/" + "12345678890.jpg");
+            try {
+                file.getParentFile().mkdirs();
+                OutputStream output = null;
+                try {
+                    output = new FileOutputStream(file);
+                    image.compress(Bitmap.CompressFormat.JPEG, 100, output);
+                } finally {
+                    if (null != output) {
+                        try {
+                            output.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                MediaScannerConnection.scanFile(GalleryActivity.this, new String[]{
+                                file.toString()}, null,
+                        (s, uri) -> {
+                        });
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+        });
+
+        mImageGLSurfaceView.setForceSize(mRenderer.getBitmap().getWidth(),
+                mRenderer.getBitmap().getHeight());
+        mImageGLSurfaceView.requestLayout();
+        mImageGLSurfaceView.requestRender();
     }
 
     private boolean isSupportsOpenGLES3() {
@@ -266,17 +299,17 @@ public class GalleryActivity extends AppCompatActivity {
         mListLayout.setVisibility(View.VISIBLE);
 
         mRenderer = new ImageRenderer();
-        mGLSurfaceView.setEGLContextClientVersion(2);
-        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
-        mGLSurfaceView.setRenderer(mRenderer);
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        mGLSurfaceView.requestRender();
+        mImageGLSurfaceView.setEGLContextClientVersion(2);
+        mImageGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mImageGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
+        mImageGLSurfaceView.setRenderer(mRenderer);
+        mImageGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mImageGLSurfaceView.requestRender();
 
         new LoadImageUriTask(imageUri, this, mRenderer,
                 bitmap -> {
                     mRenderer.setImageBitmap(bitmap);
-                    mGLSurfaceView.requestRender();
+                    mImageGLSurfaceView.requestRender();
                 }).execute();
 
     }

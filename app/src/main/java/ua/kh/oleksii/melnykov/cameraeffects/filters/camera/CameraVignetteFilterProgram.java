@@ -1,7 +1,6 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.camera;
 
 import android.graphics.PointF;
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import java.nio.FloatBuffer;
@@ -77,18 +76,18 @@ public class CameraVignetteFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        muTexMatrixLoc = GLES20.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
+        muTexMatrixLoc = GLES30.glGetUniformLocation(mProgramHandle, "mTextureMatrix");
         GlUtil.checkLocation(muTexMatrixLoc, "mTextureMatrix");
 
-        muKernelLoc = GLES20.glGetUniformLocation(mProgramHandle, "uKernel");
+        muKernelLoc = GLES30.glGetUniformLocation(mProgramHandle, "uKernel");
         if (muKernelLoc < 0) {
             muKernelLoc = -1;
             muTexOffsetLoc = -1;
             muColorAdjustLoc = -1;
         } else {
-            muTexOffsetLoc = GLES20.glGetUniformLocation(mProgramHandle, "uTexOffset");
+            muTexOffsetLoc = GLES30.glGetUniformLocation(mProgramHandle, "uTexOffset");
             GlUtil.checkLocation(muTexOffsetLoc, "uTexOffset");
-            muColorAdjustLoc = GLES20.glGetUniformLocation(mProgramHandle, "uColorAdjust");
+            muColorAdjustLoc = GLES30.glGetUniformLocation(mProgramHandle, "uColorAdjust");
             GlUtil.checkLocation(muColorAdjustLoc, "uColorAdjust");
 
             setKernel(new float[]{0f, 0f, 0f, 0f, 1f, 0f, 0f, 0f, 0f});
@@ -113,16 +112,16 @@ public class CameraVignetteFilterProgram extends FilterBaseProgram {
         float[] vec2 = new float[2];
         vec2[0] = mVignetteCenter.x;
         vec2[1] = mVignetteCenter.y;
-        GLES20.glUniform2fv(mVignetteCenterLocation, 1, vec2, 0);
+        GLES30.glUniform2fv(mVignetteCenterLocation, 1, vec2, 0);
         GlUtil.checkGlError("glUniform2fv");
 
-        GLES20.glUniform3fv(mVignetteColorLocation, 1, FloatBuffer.wrap(mVignetteColor));
+        GLES30.glUniform3fv(mVignetteColorLocation, 1, FloatBuffer.wrap(mVignetteColor));
         GlUtil.checkGlError("glUniform3fv");
 
-        GLES20.glUniform1f(mVignetteStartLocation, mVignetteStart);
+        GLES30.glUniform1f(mVignetteStartLocation, mVignetteStart);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mVignetteEndLocation, mVignetteEnd);
+        GLES30.glUniform1f(mVignetteEndLocation, mVignetteEnd);
         GlUtil.checkGlError("glUniform1f");
     }
 

@@ -23,7 +23,7 @@
     <string name="filter_gamma">Гамма</string>
     <string name="filter_brightness">Яркость</string>
     <string name="filter_saturation">Насыщенность</string>
-    <string name="filter_highlight_shadow">Выделение\nтени</string>
+    <string name="filter_highlight_shadow">Выделение\nоттенков</string>
     <string name="filter_white_balance">Баланс\nбелого</string>
     <string name="filter_invert">Инвентировать\nцвета</string>
     <string name="filter_pixelation">Пикселизация</string>

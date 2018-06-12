@@ -1,6 +1,5 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraType;
@@ -47,7 +46,7 @@ public class GalleryBrightnessFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        mGLUniformTexture = GLES20.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
+        mGLUniformTexture = GLES30.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
         GlUtil.checkLocation(mGLUniformTexture, "mInputImageTexture");
 
         mBrightnessFilterLocation = GLES30.glGetUniformLocation(mProgramHandle, "mBrightness");
@@ -57,12 +56,12 @@ public class GalleryBrightnessFilterProgram extends FilterBaseProgram {
     @Override
     public void optionalDraw(int textureId) {
         if (textureId != -1) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-            GLES20.glUniform1i(mGLUniformTexture, 0);
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId);
+            GLES30.glUniform1i(mGLUniformTexture, 0);
         }
 
-        GLES20.glUniform1f(mBrightnessFilterLocation, mBrightness);
+        GLES30.glUniform1f(mBrightnessFilterLocation, mBrightness);
         GlUtil.checkGlError("glUniform1f");
     }
 

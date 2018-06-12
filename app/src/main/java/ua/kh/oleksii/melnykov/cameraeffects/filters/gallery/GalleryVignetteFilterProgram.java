@@ -1,7 +1,6 @@
 package ua.kh.oleksii.melnykov.cameraeffects.filters.gallery;
 
 import android.graphics.PointF;
-import android.opengl.GLES20;
 import android.opengl.GLES30;
 
 import java.nio.FloatBuffer;
@@ -78,7 +77,7 @@ public class GalleryVignetteFilterProgram extends FilterBaseProgram {
 
     @Override
     protected void optionalSetup() {
-        mGLUniformTexture = GLES20.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
+        mGLUniformTexture = GLES30.glGetUniformLocation(mProgramHandle, "mInputImageTexture");
         GlUtil.checkLocation(mGLUniformTexture, "mInputImageTexture");
 
         mVignetteCenterLocation = GLES30.glGetUniformLocation(mProgramHandle, "mVignetteCenter");
@@ -97,24 +96,24 @@ public class GalleryVignetteFilterProgram extends FilterBaseProgram {
     @Override
     public void optionalDraw(int textureId) {
         if (textureId != -1) {
-            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureId);
-            GLES20.glUniform1i(mGLUniformTexture, 0);
+            GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, textureId);
+            GLES30.glUniform1i(mGLUniformTexture, 0);
         }
 
         float[] vec2 = new float[2];
         vec2[0] = mVignetteCenter.x;
         vec2[1] = mVignetteCenter.y;
-        GLES20.glUniform2fv(mVignetteCenterLocation, 1, vec2, 0);
+        GLES30.glUniform2fv(mVignetteCenterLocation, 1, vec2, 0);
         GlUtil.checkGlError("glUniform2fv");
 
-        GLES20.glUniform3fv(mVignetteColorLocation, 1, FloatBuffer.wrap(mVignetteColor));
+        GLES30.glUniform3fv(mVignetteColorLocation, 1, FloatBuffer.wrap(mVignetteColor));
         GlUtil.checkGlError("glUniform3fv");
 
-        GLES20.glUniform1f(mVignetteStartLocation, mVignetteStart);
+        GLES30.glUniform1f(mVignetteStartLocation, mVignetteStart);
         GlUtil.checkGlError("glUniform1f");
 
-        GLES20.glUniform1f(mVignetteEndLocation, mVignetteEnd);
+        GLES30.glUniform1f(mVignetteEndLocation, mVignetteEnd);
         GlUtil.checkGlError("glUniform1f");
     }
 
@@ -182,10 +181,9 @@ public class GalleryVignetteFilterProgram extends FilterBaseProgram {
     @Override
     public void setTouchCoordinate(float x, float y, int screenWidth, int screenHeight, CameraType cameraType) {
         int maxHeight = screenHeight * 3 / 4;
-        float newX = (x / screenWidth) - 1;
-        float newY = (y / maxHeight) -
-                (cameraType == CameraType.BACK || cameraType == CameraType.ONLY_BACK ? 0 : 1);
-        mVignetteCenter = new PointF(newY < 0 ? newY * -1 : newY, newX < 0 ? newX * -1 : newX);
+        float newX = x / screenWidth;
+        float newY = y / maxHeight;
+        mVignetteCenter = new PointF(newX < 0 ? newX * -1 : newX, newY < 0 ? newY * -1 : newY);
     }
 
 }
