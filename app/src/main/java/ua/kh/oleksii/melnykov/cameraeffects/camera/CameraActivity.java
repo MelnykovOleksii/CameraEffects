@@ -8,8 +8,13 @@ import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.media.MediaScannerConnection;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -257,6 +262,7 @@ public class CameraActivity extends AppCompatActivity {
     private void onTakePhotoClick() {
         mSaveImageProgress.setVisibility(View.VISIBLE);
         mCameraRenderer.setCallbackTakeBitmap(image -> {
+            image = addWaterMark(image);
             File path = Environment
                     .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
             File file = new File(path, "Camera Effects" + "/" +
@@ -291,6 +297,37 @@ public class CameraActivity extends AppCompatActivity {
 
         mGLSurfaceView.requestRender();
 
+    }
+
+    private Bitmap addWaterMark(Bitmap src) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        String gText = getString(R.string.app_name);
+
+        Bitmap result = Bitmap.createBitmap(w, h, src.getConfig());
+
+        Canvas canvas = new Canvas(result);
+        canvas.drawBitmap(src, 0, 0, null);
+
+        Typeface regular = Typeface.createFromAsset(getAssets(),
+                "SlimTony.otf");
+
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setTypeface(regular);
+        paint.setColor(getResources().getColor(R.color.colorWhite));
+        paint.setShadowLayer(1f, 0f, 1f, Color.BLACK);
+        float scale = (float) h / 360;
+
+        paint.setTextSize((int) (16 * scale));
+        Rect bounds = new Rect();
+        paint.getTextBounds(gText, 0, gText.length(), bounds);
+
+        int x = (w - bounds.width() - 16);
+        int y = (h - (int) (bounds.height() * 0.5));
+
+        canvas.drawText(gText, x, y, paint);
+
+        return result;
     }
 
     private void onSwitchCamera() {
