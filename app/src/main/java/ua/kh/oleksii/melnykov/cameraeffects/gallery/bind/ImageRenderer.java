@@ -77,10 +77,10 @@ public class ImageRenderer implements Renderer {
 
     @Override
     public void onSurfaceCreated(final GL10 unused, final EGLConfig config) {
-        GLES30.glClearColor(0f, 0f, 0f, 1f);
-        GLES30.glDisable(GLES30.GL_DEPTH_TEST);
-
-        if (mFilter == null) {
+        if (mBitmap == null) {
+            GLES30.glClearColor(0f, 0f, 0f, 1f);
+            GLES30.glDisable(GLES30.GL_DEPTH_TEST);
+        } else {
             mFilter = Filters.switchProgramByTypeForGallery(mTYPE);
             mTextureId = mFilter.getProgramHandle();
         }
@@ -100,9 +100,15 @@ public class ImageRenderer implements Renderer {
 
     @Override
     public void onDrawFrame(final GL10 gl) {
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        if (mBitmap == null) {
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        } else {
 
-        if (mBitmap != null) {
+            if (mFilter == null) {
+                mFilter = Filters.switchProgramByTypeForGallery(mTYPE);
+                mTextureId = mFilter.getProgramHandle();
+            }
+
             loadBitmap();
             if (mTYPE != mNewType) changeProgram();
             mFilter.setTexSize(mOutputWidth, mOutputHeight);

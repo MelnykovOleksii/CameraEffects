@@ -30,7 +30,7 @@ public class CameraHandler extends Handler {
     }
 
     public void invalidateHandler() {
-        mWeakActivity.clear();
+        if (mWeakActivity != null) mWeakActivity.clear();
     }
 
     public void weakReferenceHandler() {

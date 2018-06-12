@@ -141,6 +141,13 @@ public class GalleryActivity extends AppCompatActivity {
         });
         //endregion
 
+        mRenderer = new ImageRenderer();
+        mGLSurfaceView.setEGLContextClientVersion(2);
+        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
+        mGLSurfaceView.setRenderer(mRenderer);
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+
         //region настройка RecyclerView
         mFilterList.setLayoutManager(new LinearLayoutManager(
                 this, LinearLayoutManager.HORIZONTAL, false));
@@ -171,7 +178,7 @@ public class GalleryActivity extends AppCompatActivity {
 
         //region начальное состояние для view
         mErrorText.setVisibility(View.GONE);
-        mListLayout.setVisibility(View.GONE);
+        mListLayout.setVisibility(View.INVISIBLE);
         mFilterSettingsLayout.setVisibility(View.GONE);
         mSaveImage.setVisibility(View.GONE);
         mSaveImageProgress.setVisibility(View.GONE);
@@ -295,21 +302,12 @@ public class GalleryActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("image/*");
         startActivityForResult(intent, GET_IMAGE_FROM_GALLERY);
-
     }
 
     private void initGallery(Uri imageUri) {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.VISIBLE);
         mSaveImage.setVisibility(View.VISIBLE);
-
-        mRenderer = new ImageRenderer();
-        mGLSurfaceView.setEGLContextClientVersion(2);
-        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
-        mGLSurfaceView.setRenderer(mRenderer);
-        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        mGLSurfaceView.requestRender();
 
         new LoadImageUriTask(imageUri, this, mRenderer,
                 bitmap -> {
@@ -333,8 +331,12 @@ public class GalleryActivity extends AppCompatActivity {
             case EXTERNAL_STORAGE_PERMISSION:
                 // если пользователем подтверждено рарешение на использование камеры,
                 // то выполняем инициализацию камеры
-                if (grantResults.length != 1 || grantResults[0] ==
-                        PackageManager.PERMISSION_GRANTED) getImageFromUserGallery();
+                Boolean isGranted = null;
+                for (int result : grantResults) {
+                    isGranted = result == PackageManager.PERMISSION_GRANTED && isGranted == null
+                            || result == PackageManager.PERMISSION_GRANTED && isGranted;
+                }
+                if (isGranted != null && isGranted) getImageFromUserGallery();
                 else showError(R.string.gallery_permission_denied);
                 break;
         }

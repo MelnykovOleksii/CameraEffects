@@ -205,7 +205,7 @@ public class CameraActivity extends AppCompatActivity {
         //region начальное состояние для view
         mSwitchCamera.setVisibility(View.GONE);
         mErrorText.setVisibility(View.GONE);
-        mListLayout.setVisibility(View.GONE);
+        mListLayout.setVisibility(View.INVISIBLE);
         mFilterSettingsLayout.setVisibility(View.GONE);
         mTakePicture.setVisibility(View.GONE);
         mSaveImageProgress.setVisibility(View.GONE);
@@ -335,7 +335,7 @@ public class CameraActivity extends AppCompatActivity {
         else if (mCameraType == CameraType.BACK) mCameraType = CameraType.FRONT;
 
         if (mCameraInterface != null) {
-            CloseCamera();
+            closeCamera();
             mCameraInterface.openCameraByType(mCameraType);
         }
     }
@@ -345,6 +345,8 @@ public class CameraActivity extends AppCompatActivity {
         super.onResume();
         if (mCameraInterface != null && mCameraType != CameraType.NONE)
             mCameraInterface.openCameraByType(mCameraType);
+        if (mGLSurfaceView != null && mCameraRenderer != null)
+            mGLSurfaceView.requestRender();
     }
 
     /**
@@ -403,8 +405,12 @@ public class CameraActivity extends AppCompatActivity {
             case CAMERA_PERMISSION:
                 // если пользователем подтверждено рарешение на использование камеры,
                 // то выполняем инициализацию камеры
-                if (grantResults.length != 1 || grantResults[0] ==
-                        PackageManager.PERMISSION_GRANTED) initCamera();
+                Boolean isGranted = null;
+                for (int result : grantResults) {
+                    isGranted = result == PackageManager.PERMISSION_GRANTED && isGranted == null
+                            || result == PackageManager.PERMISSION_GRANTED && isGranted;
+                }
+                if (isGranted != null && isGranted) initCamera();
                 else showError(R.string.camera_permission_denied);
                 break;
         }
@@ -480,10 +486,10 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        CloseCamera();
+        closeCamera();
     }
 
-    private void CloseCamera() {
+    private void closeCamera() {
         if (mCameraInterface != null) mCameraInterface.closeCamera();
         if (mCameraRenderer != null && mGLSurfaceView != null) {
             mGLSurfaceView.queueEvent(() -> mCameraRenderer.notifyPausing());
