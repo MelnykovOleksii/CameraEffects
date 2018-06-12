@@ -32,6 +32,7 @@
     <string name="filter_emboss">Теснение</string>
     <string name="filter_vignette">Винъетирование</string>
     <string name="filter_toon">Эффект\nмультфильма</string>
+    <string name="save_image_error">Случилась ошибка при сохранении...</string>
     <!--endregion-->
 
 </resources>

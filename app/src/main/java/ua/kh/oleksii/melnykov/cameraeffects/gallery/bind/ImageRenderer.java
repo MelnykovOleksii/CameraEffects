@@ -61,9 +61,9 @@ public class ImageRenderer implements Renderer {
     private Bitmap mBitmap;
     private CallbackTakeBitmap mCallbackTakeBitmap;
 
-    public ImageRenderer(Filters.TYPE type) {
-        mTYPE = type;
-        mNewType = type;
+    public ImageRenderer() {
+        mTYPE = Filters.TYPE.NO_FILTER;
+        mNewType = Filters.TYPE.NO_FILTER;
 
         mGLCubeBuffer = ByteBuffer.allocateDirect(CUBE.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -73,14 +73,6 @@ public class ImageRenderer implements Renderer {
         mGLTextureBuffer = ByteBuffer.allocateDirect(TEXTURE_NO_ROTATION.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer();
-    }
-
-    public ImageRenderer() {
-        this(Filters.TYPE.NO_FILTER);
-    }
-
-    public Bitmap getBitmap() {
-        return mBitmap;
     }
 
     @Override
@@ -127,8 +119,8 @@ public class ImageRenderer implements Renderer {
     }
 
     private Bitmap takeBitmap(GL10 mGL) {
-        final int width = mBitmap.getWidth();
-        final int height = mBitmap.getHeight();
+        final int width = mOutputWidth;
+        final int height = mOutputHeight;
 
         IntBuffer ib = IntBuffer.allocate(width * height);
         IntBuffer ibt = IntBuffer.allocate(width * height);

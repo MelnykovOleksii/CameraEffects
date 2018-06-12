@@ -24,8 +24,7 @@
         app:layout_constraintStart_toStartOf="@+id/gallery_surface_view"
         app:layout_constraintTop_toBottomOf="@+id/gallery_surface_view" />
 
-
-    <ua.kh.oleksii.melnykov.cameraeffects.utils.ImageGLSurfaceView
+    <android.opengl.GLSurfaceView
         android:id="@+id/gallery_surface_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -33,6 +32,15 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/gallery_save_progress"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        app:layout_constraintBottom_toBottomOf="@+id/gallery_save_image"
+        app:layout_constraintEnd_toEndOf="@+id/gallery_save_image"
+        app:layout_constraintStart_toStartOf="@+id/gallery_save_image"
+        app:layout_constraintTop_toTopOf="@+id/gallery_save_image" />
 
     <ImageButton
         android:id="@+id/gallery_save_image"

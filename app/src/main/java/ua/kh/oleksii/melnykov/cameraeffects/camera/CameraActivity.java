@@ -7,10 +7,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ConfigurationInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.media.MediaScannerConnection;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
@@ -27,8 +30,17 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Calendar;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.camera.bind.CameraHandler;
@@ -65,20 +77,14 @@ public class CameraActivity extends AppCompatActivity {
     private GLSurfaceView mGLSurfaceView;
     private RecyclerView mFilterList;
     private ConstraintLayout mListLayout;
-    private ImageView mToGallery;
     private ConstraintLayout mFilterSettingsLayout;
     private ConstraintLayout mFilterSetting1Layout;
     private ConstraintLayout mFilterSetting2Layout;
     private ConstraintLayout mFilterSetting3Layout;
-    private ImageView mFilterSetting1LeftIcon;
-    private ImageView mFilterSetting1RightIcon;
     private SeekBar mFilterSetting1SeekBar;
-    private ImageView mFilterSetting2LeftIcon;
-    private ImageView mFilterSetting2RightIcon;
     private SeekBar mFilterSetting2SeekBar;
-    private ImageView mFilterSetting3LeftIcon;
-    private ImageView mFilterSetting3RightIcon;
     private SeekBar mFilterSetting3SeekBar;
+    private Button mTakePicture;
     //endregion
 
     private FilterAdapter mFilterAdapter;
@@ -91,6 +97,7 @@ public class CameraActivity extends AppCompatActivity {
     private CameraInterface mCameraInterface;
     @Nullable
     private CameraHandler mCameraHandler;
+    private ProgressBar mSaveImageProgress;
     //endregion
 
     /**
@@ -117,37 +124,32 @@ public class CameraActivity extends AppCompatActivity {
         mScreenHeight = size.y;
 
         //region инициализация view
-        Button takePicture = findViewById(R.id.camera_take_picture);
+        mTakePicture = findViewById(R.id.camera_take_picture);
         mErrorText = findViewById(R.id.camera_error_text);
         mSwitchCamera = findViewById(R.id.camera_switch_camera);
         mFilterList = findViewById(R.id.include_filters_list);
         mGLSurfaceView = findViewById(R.id.camera_surface_view);
         mListLayout = findViewById(R.id.include_filters_list_layout);
-        mToGallery = findViewById(R.id.main_gallery);
+        ImageView toGallery = findViewById(R.id.main_gallery);
         mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
         mFilterSetting1Layout = findViewById(R.id.include_filter_setting1);
         mFilterSetting2Layout = findViewById(R.id.include_filter_setting2);
         mFilterSetting3Layout = findViewById(R.id.include_filter_setting3);
-        mFilterSetting1LeftIcon = findViewById(R.id.include_filter_setting1_left_icon);
-        mFilterSetting1RightIcon = findViewById(R.id.include_filter_setting1_right_icon);
         mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
-        mFilterSetting2LeftIcon = findViewById(R.id.include_filter_setting2_left_icon);
-        mFilterSetting2RightIcon = findViewById(R.id.include_filter_setting2_right_icon);
         mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
-        mFilterSetting3LeftIcon = findViewById(R.id.include_filter_setting3_left_icon);
-        mFilterSetting3RightIcon = findViewById(R.id.include_filter_setting3_right_icon);
         mFilterSetting3SeekBar = findViewById(R.id.include_filter_setting3_seek_bar);
+        mSaveImageProgress = findViewById(R.id.camera_save_progress);
         //endregion
 
         //region подключение слушателей для view
-        takePicture.setOnClickListener(view -> onTakePhotoClick());
+        mTakePicture.setOnClickListener(view -> onTakePhotoClick());
         mSwitchCamera.setOnClickListener(view -> onSwitchCamera());
         mOnFilterItemClickCallback = (position, isSecondClick) -> {
             if (mCameraRenderer == null) return;
             if (!isSecondClick) mCameraRenderer.changeFilter(position);
             else initFilterSettings();
         };
-        mToGallery.setOnClickListener(v -> startActivity(GalleryActivity.createIntent(this)));
+        toGallery.setOnClickListener(v -> startActivity(GalleryActivity.createIntent(this)));
         //endregion
 
         //region настройка GLSurfaceView и установка рендера
@@ -200,7 +202,8 @@ public class CameraActivity extends AppCompatActivity {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.GONE);
         mFilterSettingsLayout.setVisibility(View.GONE);
-        takePicture.setVisibility(View.GONE);
+        mTakePicture.setVisibility(View.GONE);
+        mSaveImageProgress.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getCameraPermission())
@@ -252,6 +255,41 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     private void onTakePhotoClick() {
+        mSaveImageProgress.setVisibility(View.VISIBLE);
+        mCameraRenderer.setCallbackTakeBitmap(image -> {
+            File path = Environment
+                    .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+            File file = new File(path, "Camera Effects" + "/" +
+                    "IMG " + Calendar.getInstance().getTime().toString() + ".jpg");
+            try {
+                file.getParentFile().mkdirs();
+                OutputStream output = null;
+                try {
+                    output = new FileOutputStream(file);
+                    image.compress(Bitmap.CompressFormat.JPEG, 100, output);
+                } finally {
+                    if (null != output) {
+                        try {
+                            output.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                MediaScannerConnection.scanFile(CameraActivity.this, new String[]{
+                                file.toString()}, null,
+                        (s, uri) -> {
+                            mSaveImageProgress.setVisibility(View.GONE);
+                        });
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Toast.makeText(CameraActivity.this,
+                        R.string.save_image_error, Toast.LENGTH_SHORT).show();
+            }
+
+        });
+
+        mGLSurfaceView.requestRender();
 
     }
 
@@ -348,6 +386,7 @@ public class CameraActivity extends AppCompatActivity {
         mCameraInterface.setOnFrameAvailableCallback(surfaceTexture -> mGLSurfaceView.requestRender());
         mCameraInterface.setCameraReadyCallback((previewWidth, previewHeight) -> {
             mListLayout.setVisibility(View.VISIBLE);
+            mTakePicture.setVisibility(View.VISIBLE);
             mCameraHandler.weakReferenceHandler();
             mGLSurfaceView.onResume();
             mGLSurfaceView.queueEvent(() ->

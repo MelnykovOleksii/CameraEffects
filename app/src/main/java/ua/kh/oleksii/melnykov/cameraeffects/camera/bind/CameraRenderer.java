@@ -1,5 +1,7 @@
 package ua.kh.oleksii.melnykov.cameraeffects.camera.bind;
 
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES30;
@@ -8,6 +10,7 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 
 import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -51,6 +54,7 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
             0.0f, 1.0f,     // 2 top left
             1.0f, 1.0f      // 3 top right
     });
+    private CallbackTakeBitmap mCallbackTakeBitmap;
 
     public CameraRenderer(@Nullable CameraHandler cameraHandler) {
         mCameraHandler = cameraHandler;
@@ -131,7 +135,32 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
                     mTexCoordStride,
                     mSTMatrix,
                     mTexCoordStride);
+
+            if (mCallbackTakeBitmap != null) {
+                mCallbackTakeBitmap.takeBitmap(takeBitmap(gl));
+                mCallbackTakeBitmap = null;
+            }
         }
+    }
+
+    private Bitmap takeBitmap(GL10 mGL) {
+        final int width = mIncomingHeight;
+        final int height = mIncomingWidth;
+
+        IntBuffer ib = IntBuffer.allocate(width * height);
+        IntBuffer ibt = IntBuffer.allocate(width * height);
+        mGL.glReadPixels(0, 0, width, height, GL10.GL_RGBA, GL10.GL_UNSIGNED_BYTE, ib);
+
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                ibt.put((height - i - 1) * width + j, ib.get(i * width + j));
+            }
+        }
+
+        Bitmap mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        mBitmap.eraseColor(Color.argb(0, 255, 255, 255));
+        mBitmap.copyPixelsFromBuffer(ibt);
+        return mBitmap;
     }
 
     public void setCameraPreviewSize(int previewWidth, int previewHeight,
@@ -209,4 +238,13 @@ public class CameraRenderer implements GLSurfaceView.Renderer {
     public int getHeight() {
         return mIncomingHeight;
     }
+
+    public void setCallbackTakeBitmap(CallbackTakeBitmap callbackTakeBitmap) {
+        mCallbackTakeBitmap = callbackTakeBitmap;
+    }
+
+    public interface CallbackTakeBitmap {
+        void takeBitmap(Bitmap image);
+    }
+
 }

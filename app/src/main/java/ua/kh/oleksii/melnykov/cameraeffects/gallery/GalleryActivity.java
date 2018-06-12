@@ -31,20 +31,22 @@ import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Calendar;
 
 import ua.kh.oleksii.melnykov.cameraeffects.R;
 import ua.kh.oleksii.melnykov.cameraeffects.filters.listAdapter.FilterAdapter;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.ImageRenderer;
 import ua.kh.oleksii.melnykov.cameraeffects.gallery.bind.LoadImageUriTask;
-import ua.kh.oleksii.melnykov.cameraeffects.utils.ImageGLSurfaceView;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.RecyclerSectionItemDecoration;
 import ua.kh.oleksii.melnykov.cameraeffects.utils.SeekBarProgressChangeListener;
 
@@ -67,10 +69,9 @@ public class GalleryActivity extends AppCompatActivity {
 
     //region view поля
     private TextView mErrorText;
-    private ImageGLSurfaceView mImageGLSurfaceView;
+    private GLSurfaceView mGLSurfaceView;
     private RecyclerView mFilterList;
     private ConstraintLayout mListLayout;
-    private ImageView mToCamera;
     private ConstraintLayout mFilterSettingsLayout;
     private ConstraintLayout mFilterSetting1Layout;
     private ConstraintLayout mFilterSetting2Layout;
@@ -78,11 +79,13 @@ public class GalleryActivity extends AppCompatActivity {
     private SeekBar mFilterSetting1SeekBar;
     private SeekBar mFilterSetting2SeekBar;
     private SeekBar mFilterSetting3SeekBar;
+    private ProgressBar mSaveImageProgress;
     //endregion
 
     private FilterAdapter mFilterAdapter;
     private FilterAdapter.OnItemClickCallback mOnFilterItemClickCallback;
     private ImageRenderer mRenderer;
+    private ImageButton mSaveImage;
 
     public static Intent createIntent(@NonNull Context context) {
         return new Intent(context, GalleryActivity.class);
@@ -102,12 +105,12 @@ public class GalleryActivity extends AppCompatActivity {
         mScreenHeight = size.y;
 
         //region инициализация view
-        ImageButton saveImage = findViewById(R.id.gallery_save_image);
+        mSaveImage = findViewById(R.id.gallery_save_image);
         mErrorText = findViewById(R.id.gallery_error_text);
         mFilterList = findViewById(R.id.include_filters_list);
-        mImageGLSurfaceView = findViewById(R.id.gallery_surface_view);
+        mGLSurfaceView = findViewById(R.id.gallery_surface_view);
         mListLayout = findViewById(R.id.include_filters_list_layout);
-        mToCamera = findViewById(R.id.gallery_back_to_camera);
+        ImageView toCamera = findViewById(R.id.gallery_back_to_camera);
         mFilterSettingsLayout = findViewById(R.id.include_filter_settings_layout);
         mFilterSetting1Layout = findViewById(R.id.include_filter_setting1);
         mFilterSetting2Layout = findViewById(R.id.include_filter_setting2);
@@ -115,23 +118,24 @@ public class GalleryActivity extends AppCompatActivity {
         mFilterSetting1SeekBar = findViewById(R.id.include_filter_setting1_seek_bar);
         mFilterSetting2SeekBar = findViewById(R.id.include_filter_setting2_seek_bar);
         mFilterSetting3SeekBar = findViewById(R.id.include_filter_setting3_seek_bar);
+        mSaveImageProgress = findViewById(R.id.gallery_save_progress);
         //endregion
 
         //region подключение слушателей для view
-        saveImage.setOnClickListener(view -> onSaveImage());
+        mSaveImage.setOnClickListener(view -> onSaveImage());
         mOnFilterItemClickCallback = (position, isSecondClick) -> {
             if (!isSecondClick) {
                 mRenderer.changeFilter(position);
-                mImageGLSurfaceView.requestRender();
+                mGLSurfaceView.requestRender();
             } else initFilterSettings();
         };
-        mToCamera.setOnClickListener(v -> onBackPressed());
-        mImageGLSurfaceView.setOnTouchListener((v, event) -> {
+        toCamera.setOnClickListener(v -> onBackPressed());
+        mGLSurfaceView.setOnTouchListener((v, event) -> {
             if (mRenderer.getProgram() != null &&
                     mRenderer.getProgram().isTouchListenerEnable()) {
                 mRenderer.getProgram().setTouchCoordinate(event.getX(), event.getY(),
                         mScreenWidth, mScreenHeight, null);
-                mImageGLSurfaceView.requestRender();
+                mGLSurfaceView.requestRender();
             }
             return true;
         });
@@ -169,7 +173,8 @@ public class GalleryActivity extends AppCompatActivity {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.GONE);
         mFilterSettingsLayout.setVisibility(View.GONE);
-//        saveImage.setVisibility(View.GONE);
+        mSaveImage.setVisibility(View.GONE);
+        mSaveImageProgress.setVisibility(View.GONE);
         //endregion
 
         if (isSupportsOpenGLES3() && getExternalReadPermission())
@@ -189,7 +194,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setFirstSettingsValue(progress);
-                    mImageGLSurfaceView.requestRender();
+                    mGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting1Layout.setVisibility(View.GONE);
@@ -202,7 +207,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setSecondSettingsValue(progress);
-                    mImageGLSurfaceView.requestRender();
+                    mGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting2Layout.setVisibility(View.GONE);
@@ -215,7 +220,7 @@ public class GalleryActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                     mRenderer.getProgram().setThirdSettingsValue(progress);
-                    mImageGLSurfaceView.requestRender();
+                    mGLSurfaceView.requestRender();
                 }
             });
         } else mFilterSetting3Layout.setVisibility(View.GONE);
@@ -225,13 +230,12 @@ public class GalleryActivity extends AppCompatActivity {
     }
 
     private void onSaveImage() {
+        mSaveImageProgress.setVisibility(View.VISIBLE);
         mRenderer.setCallbackTakeBitmap(image -> {
-            mImageGLSurfaceView.setForceSize(null, null);
-            mImageGLSurfaceView.requestRender();
-
             File path = Environment
                     .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-            File file = new File(path, "Effects" + "/" + "12345678890.jpg");
+            File file = new File(path, "Camera Effects" + "/" +
+                    "IMG " + Calendar.getInstance().getTime().toString() + ".jpg");
             try {
                 file.getParentFile().mkdirs();
                 OutputStream output = null;
@@ -250,17 +254,17 @@ public class GalleryActivity extends AppCompatActivity {
                 MediaScannerConnection.scanFile(GalleryActivity.this, new String[]{
                                 file.toString()}, null,
                         (s, uri) -> {
+                            mSaveImageProgress.setVisibility(View.GONE);
                         });
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
+                Toast.makeText(GalleryActivity.this,
+                        R.string.save_image_error, Toast.LENGTH_SHORT).show();
             }
 
         });
 
-        mImageGLSurfaceView.setForceSize(mRenderer.getBitmap().getWidth(),
-                mRenderer.getBitmap().getHeight());
-        mImageGLSurfaceView.requestLayout();
-        mImageGLSurfaceView.requestRender();
+        mGLSurfaceView.requestRender();
     }
 
     private boolean isSupportsOpenGLES3() {
@@ -297,19 +301,20 @@ public class GalleryActivity extends AppCompatActivity {
     private void initGallery(Uri imageUri) {
         mErrorText.setVisibility(View.GONE);
         mListLayout.setVisibility(View.VISIBLE);
+        mSaveImage.setVisibility(View.VISIBLE);
 
         mRenderer = new ImageRenderer();
-        mImageGLSurfaceView.setEGLContextClientVersion(2);
-        mImageGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        mImageGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
-        mImageGLSurfaceView.setRenderer(mRenderer);
-        mImageGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
-        mImageGLSurfaceView.requestRender();
+        mGLSurfaceView.setEGLContextClientVersion(2);
+        mGLSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLSurfaceView.getHolder().setFormat(PixelFormat.RGBA_8888);
+        mGLSurfaceView.setRenderer(mRenderer);
+        mGLSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        mGLSurfaceView.requestRender();
 
         new LoadImageUriTask(imageUri, this, mRenderer,
                 bitmap -> {
                     mRenderer.setImageBitmap(bitmap);
-                    mImageGLSurfaceView.requestRender();
+                    mGLSurfaceView.requestRender();
                 }).execute();
 
     }
